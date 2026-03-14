@@ -21,19 +21,19 @@ class TaskController extends Controller
      */
     public function generateTask($user)
     {
-        $query = $user->player_tag." "; // پیام موردنظر برای چت‌بات
-        if($user->todayTask){
-            $query.=$user->todayTask;
+        $query = $user->player_tag . " "; // پیام موردنظر برای چت‌بات
+        if ($user->todayTask) {
+            $query .= $user->todayTask;
         }
         // گرفتن اطلاعات چت‌بات (می‌توانید از کش یا دیتابیس ذخیره کنید)
         $chatbotData = \Cache::get('chatbot', []);
 
         try {
             $chatbotData = $this->chatbotService->getChatbotData(); // دریافت اطلاعات از کش
-            
+
             // ارسال درخواست به چت‌بات
             $response = $this->chatbotService->sendQuery($query, $user->id, $chatbotData);
-    
+
 
             // ذخیره تسک جدید در دیتابیس
             $task = Task::create([
@@ -66,11 +66,11 @@ class TaskController extends Controller
     public function completeTask(Request $request)
     {
         $user = auth()->user();
-        
+
         // فرض بر این است که تسک‌ها در جدول Task ذخیره می‌شوند
         // ما باید آخرین تسک را پیدا کنیم و وضعیت آن را تغییر دهیم
         $task = $user->tasks()->latest()->first();
-    
+
         // اگر تسکی وجود دارد، آن را به حالت کامل تغییر می‌دهیم
         if ($task) {
             $task->update(['completed' => true]);  // یا هر فیلد دیگری که برای نشان دادن تکمیل استفاده می‌کنید
@@ -78,11 +78,24 @@ class TaskController extends Controller
         // $newTask = $this->generateTask($user);
 
         // بازگشت پاسخ به کلاینت
-        
-        return Inertia::replace('Dashboard', [
-            'user' => $user,
-            'successMessage' => 'تسک انجام شد',
-        ]);
+
+        return to_route('dashboard')->with('successMessage', 'تسک انجام شد');
     }
-    
+
+    public function getDailyPlan(Request $request)
+    {
+        $user = auth()->user();
+        $plan = $this->chatbotService->generateStrategy($user, 'daily_plan');
+
+        return response()->json(['plan' => $plan]);
+    }
+
+    public function getWarStrategy(Request $request)
+    {
+        $user = auth()->user();
+        $strategy = $this->chatbotService->generateStrategy($user, 'war_strategy');
+
+        return response()->json(['strategy' => $strategy]);
+    }
+
 }

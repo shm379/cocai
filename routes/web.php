@@ -21,7 +21,7 @@ Route::get('/', function () {
 // 1) صفحه اصلی داشبورد (مثلاً منوی کلی)
 
 // 2) صفحه اطلاعات بازی
-Route::get('/dashboard/game-info', function() {
+Route::get('/dashboard/game-info', function () {
     // با دیتابیس یا API چیزی بخوانید
     $user = auth()->user();
     $gameProfile = $user->gameProfile->game_data ?? [];
@@ -32,7 +32,7 @@ Route::get('/dashboard/game-info', function() {
 })->name('dashboard.game-info');
 
 // 3) صفحه نیروها
-Route::get('/dashboard/troops', function() {
+Route::get('/dashboard/troops', function () {
     $user = auth()->user();
     $gameProfile = $user->gameProfile->game_data ?? [];
     // ...
@@ -43,7 +43,7 @@ Route::get('/dashboard/troops', function() {
 })->name('dashboard.troops');
 
 // 4) صفحه تقویم
-Route::get('/dashboard/calendar', function() {
+Route::get('/dashboard/calendar', function () {
     $calendar = auth()->user()->calendars ?? [];
     return Inertia::render('Dashboard/CalendarPage', [
         'calendar' => $calendar
@@ -51,7 +51,7 @@ Route::get('/dashboard/calendar', function() {
 })->name('dashboard.calendar');
 
 // 5) صفحه وظیفهٔ امروز
-Route::get('/dashboard/today-task', function() {
+Route::get('/dashboard/today-task', function () {
     $todayTask = auth()->user()->tasks()->latest()->first()->task ?? 'هیچ تسکی تعریف نشده.';
     return Inertia::render('Dashboard/TodayTaskPage', [
         'todayTask' => $todayTask
@@ -68,12 +68,14 @@ Route::get('/test-pagination', function (Request $request) {
 })->name('test.pagination');
 // داشبورد
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [DashboardController::class,'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // مسیرهای مربوط به تسک
     Route::post('/tasks/generate', [TaskController::class, 'generateTask'])->name('tasks.generate');
     Route::get('/tasks/last', [TaskController::class, 'getLastTask'])->name('tasks.last');
     Route::post('/tasks/complete', [TaskController::class, 'completeTask'])->name('tasks.complete');
+    Route::post('/tasks/daily-plan', [TaskController::class, 'getDailyPlan'])->name('tasks.daily-plan');
+    Route::post('/tasks/war-strategy', [TaskController::class, 'getWarStrategy'])->name('tasks.war-strategy');
     // Route::get('/clash/player', [ClashOfClansController::class, 'getPlayer']);
 
 });
@@ -84,5 +86,5 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-Route::get('/map',[MapController::class,'crawlMaps']);
-require __DIR__.'/auth.php';
+Route::get('/map', [MapController::class, 'crawlMaps']);
+require __DIR__ . '/auth.php';
