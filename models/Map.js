@@ -1,7 +1,18 @@
 import { Sequelize, DataTypes } from 'sequelize';
 
-// اتصال به دیتابیس
-const sequelize = new Sequelize('mysql://root:09391727950@localhost:3306/cocai'); // اطلاعات دیتابیس خود را وارد کنید
+// اتصال به دیتابیس — کردنشیال از متغیرهای محیطی خوانده می‌شود (هم‌منبع با .env لاراول).
+// اجرا: node --env-file=.env crawler.js
+const sequelize = new Sequelize(
+  process.env.DB_DATABASE || 'cocai',
+  process.env.DB_USERNAME || 'root',
+  process.env.DB_PASSWORD || '',
+  {
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: process.env.DB_PORT || 3306,
+    dialect: 'mysql',
+    logging: false,
+  }
+);
 
 // تعریف مدل نقشه
 const Map = sequelize.define('Map', {

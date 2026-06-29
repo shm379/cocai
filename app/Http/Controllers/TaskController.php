@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Task;
-use Illuminate\Http\Request;
 use App\Services\ChatbotService;
-use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
@@ -19,9 +18,11 @@ class TaskController extends Controller
     /**
      * تولید تسک جدید از چت‌بات
      */
-    public function generateTask($user)
+    public function generateTask(Request $request)
     {
-        $query = $user->player_tag . " "; // پیام موردنظر برای چت‌بات
+        $user = auth()->user();
+
+        $query = $user->player_tag.' '; // پیام موردنظر برای چت‌بات
         if ($user->todayTask) {
             $query .= $user->todayTask;
         }
@@ -29,11 +30,8 @@ class TaskController extends Controller
         $chatbotData = \Cache::get('chatbot', []);
 
         try {
-            $chatbotData = $this->chatbotService->getChatbotData(); // دریافت اطلاعات از کش
-
-            // ارسال درخواست به چت‌بات
-            $response = $this->chatbotService->sendQuery($query, $user->id, $chatbotData);
-
+            // ارسال درخواست به سرویس هوش مصنوعی (خروجی متنی)
+            $response = $this->chatbotService->sendQuery($query, $user->id, [], false);
 
             // ذخیره تسک جدید در دیتابیس
             $task = Task::create([
@@ -97,5 +95,4 @@ class TaskController extends Controller
 
         return response()->json(['strategy' => $strategy]);
     }
-
 }

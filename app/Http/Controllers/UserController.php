@@ -3,18 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\SendChatbotQuery;
-use App\Models\TrophyLog;
-use Illuminate\Http\Request;
-use App\Services\ClashOfClansService;
-use App\Services\ChatbotService;
 use App\Models\GameProfile;
 use App\Models\Task;
-use Inertia\Inertia;
+use App\Models\TrophyLog;
+use App\Services\ChatbotService;
+use App\Services\ClashOfClansService;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-
     protected $clashOfClansService;
+
     protected $chatbotService;
 
     public function __construct(ClashOfClansService $clashOfClansService, ChatbotService $chatbotService)
@@ -25,7 +24,7 @@ class UserController extends Controller
 
     public function generateTask($user)
     {
-        $query = $user->player_tag . " لطفا فقط بگو چه کاری برای ارتقا مهمترینه امروز و من الان تقویم نیاز ندارم فقط در ۳ خط بگو چیکار کنم امروز چون باید تاون هال ببرم بالا و نیاز به کمک دارم";
+        $query = $user->player_tag.' لطفا فقط بگو چه کاری برای ارتقا مهمترینه امروز و من الان تقویم نیاز ندارم فقط در ۳ خط بگو چیکار کنم امروز چون باید تاون هال ببرم بالا و نیاز به کمک دارم';
 
         $chatbotData = \Cache::get('chatbot', []);
 
@@ -46,16 +45,14 @@ class UserController extends Controller
 
     public function generateCalendar($user)
     {
-
-        $query = $user->player_tag . " یک تقویم بده";
-
         try {
-            $chatbotData = \Cache::get('chatbot', []);
-            SendChatbotQuery::dispatch($query, $user->id, $chatbotData, true);
+            // ساخت تقویم چندروزه در پس‌زمینه از طریق NabuGate
+            SendChatbotQuery::dispatch($user->id);
 
             return true;
         } catch (\Exception $e) {
-            \Log::error('Error generating calendar: ' . $e->getMessage());
+            \Log::error('Error generating calendar: '.$e->getMessage());
+
             return false;
         }
     }
@@ -69,38 +66,37 @@ class UserController extends Controller
         ]);
         $user = auth()->user();
 
-
         // به‌روزرسانی یا ایجاد رکورد در GameProfile
-//        try {
-            // حذف # از player_tag
-            $playerTag = str_replace('#', '', $request->player_tag);
+        //        try {
+        // حذف # از player_tag
+        $playerTag = str_replace('#', '', $request->player_tag);
 
-            // دریافت اطلاعات بازی از ClashOfClansService
-            $playerData = $this->clashOfClansService->getPlayerData($playerTag);
-            // ذخیره یا به‌روزرسانی اطلاعات در GameProfile
-            $gameProfile = GameProfile::updateOrCreate(
-                ['user_id' => $user->id,
-                ], // شرط برای به‌روزرسانی یا ایجاد
-                [
-                    'player_tag' => $playerTag,
-                    'game_data' => $playerData, // ذخیره اطلاعات بازی
-                ]
-            );
-            if($gameProfile) {
-                TrophyLog::query()->create([
-                    'game_profile_id' => $gameProfile->id,
-                    'trophy_count' => $playerData['trophies'] ?? 0,
-                ]);
-            }
-            $this->generateCalendar($user);
+        // دریافت اطلاعات بازی از ClashOfClansService
+        $playerData = $this->clashOfClansService->getPlayerData($playerTag);
+        // ذخیره یا به‌روزرسانی اطلاعات در GameProfile
+        $gameProfile = GameProfile::updateOrCreate(
+            ['user_id' => $user->id,
+            ], // شرط برای به‌روزرسانی یا ایجاد
+            [
+                'player_tag' => $playerTag,
+                'game_data' => $playerData, // ذخیره اطلاعات بازی
+            ]
+        );
+        if ($gameProfile) {
+            TrophyLog::query()->create([
+                'game_profile_id' => $gameProfile->id,
+                'trophy_count' => $playerData['trophies'] ?? 0,
+            ]);
+        }
+        $this->generateCalendar($user);
 
-            // تولید تسک جدید با استفاده از generateTask
-//            $this->generateTask($user);
+        // تولید تسک جدید با استفاده از generateTask
+        //            $this->generateTask($user);
 
-            return redirect()->route('dashboard')->with(['successMessage'=>'پردازش با موفقیت انجام شد']);
-//        } catch (\Exception $e) {
-//            return redirect()->route('dashboard')->with(['errorMessage'=>'پردازش با شکست مواجه شد']);
-//        }
+        return redirect()->route('dashboard')->with(['successMessage' => 'پردازش با موفقیت انجام شد']);
+        //        } catch (\Exception $e) {
+        //            return redirect()->route('dashboard')->with(['errorMessage'=>'پردازش با شکست مواجه شد']);
+        //        }
     }
 
     public function completeTask(Request $request)
@@ -126,6 +122,4 @@ class UserController extends Controller
 
         return response()->json(['message' => 'تسک یافت نشد.'], 400);
     }
-
-
 }

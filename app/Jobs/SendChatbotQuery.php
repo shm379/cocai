@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Calendar;
 use App\Models\GameProfile;
 use App\Models\User;
 use App\Services\ChatbotService;
@@ -14,64 +15,52 @@ use Illuminate\Queue\SerializesModels;
 class SendChatbotQuery implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    protected $query;
-    protected $userId;
-    protected $chatbotData;
-    protected $outputJson;
 
-    // می‌توانید مقادیر timeout یا سایر مشخصه‌های صف را اینجا تعیین کنید
+    protected $userId;
+
     public $timeout = 1200; // حداکثر مدت زمان اجرای جاب در ثانیه
 
-    /**
-     * Create a new job instance.
-     *
-     * @param string $query
-     * @param mixed $userId
-     * @param array $chatbotData
-     * @param bool $outputJson
-     */
-    public function __construct($query, $userId, $chatbotData = [], $outputJson = true)
+    public function __construct($userId)
     {
-        $this->query = $query;
         $this->userId = $userId;
-        $this->chatbotData = $chatbotData;
-        $this->outputJson = $outputJson;
     }
 
     /**
-     * Execute the job.
-     *
-     * @return void
+     * Build a multi-day upgrade calendar for the user via the AI gateway and persist it.
      */
     public function handle(ChatbotService $chatbotService)
     {
         set_time_limit(1200);
-        $response = $chatbotService->sendQuery(
-            $this->query,
-            $this->userId,
-            $this->chatbotData,
-            $this->outputJson,
-        );
 
-        $response = $chatbotService->sendQuery(
-            'Think deeply and check that everything the calendar gives is equal to the levels in json api. and return calendar in persian',
-            $this->userId,
-            $this->chatbotData,
-            $this->outputJson,
-        );
+        $user = User::find($this->userId);
+        if (! $user) {
+            return;
+        }
 
-        $gameProfile = GameProfile::query()->where('user_id',$this->userId)->latest()->first();
-        // اگر خروجی JSON بود:
-        if (is_array($response) && isset($response['days'])) {
-            foreach ($response['days'] as $task) {
-                \App\Models\Calendar::create([
-                    'user_id' => $this->userId,
-                    'game_profile_id' => $gameProfile->id,
-                    'day' => $task['day'],
-                    'task' => $task['task'],
-                ]);
+        $calendar = $chatbotService->generateCalendar($user);
+        if (empty($calendar['days']) || ! is_array($calendar['days'])) {
+            return;
+        }
+
+        $gameProfile = GameProfile::where('user_id', $this->userId)->latest()->first();
+        if (! $gameProfile) {
+            return;
+        }
+
+        // تقویم قبلی این پروفایل را پاک کن تا برنامهٔ تازه جایگزین شود
+        Calendar::where('game_profile_id', $gameProfile->id)->delete();
+
+        foreach ($calendar['days'] as $task) {
+            if (! isset($task['day'], $task['task'])) {
+                continue;
             }
+
+            Calendar::create([
+                'user_id' => $this->userId,
+                'game_profile_id' => $gameProfile->id,
+                'day' => $task['day'],
+                'task' => $task['task'],
+            ]);
         }
     }
-
 }

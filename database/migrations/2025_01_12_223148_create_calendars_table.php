@@ -14,14 +14,15 @@ return new class extends Migration
         Schema::create('calendars', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id'); // ارجاع به کاربر
-            $table->unsignedBigInteger('game_profile_id')->unique(); // ارجاع به کاربر
+            // یک پروفایل چندین روزِ تقویم دارد، پس unique نیست (فقط ایندکس می‌شود)
+            $table->unsignedBigInteger('game_profile_id')->index();
             $table->integer('day'); // شماره روز
             $table->text('task'); // شرح وظیفه
             $table->timestamps();
 
             // ارجاع به جدول users برای مرتبط کردن با گیم پروفایل
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('game_profile_id')->references('id')->on('geme_profiles')->onDelete('cascade');
+            $table->foreign('game_profile_id')->references('id')->on('game_profiles')->onDelete('cascade');
         });
     }
 

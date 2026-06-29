@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'nabu' => [
+        'base_url' => env('NABU_BASE_URL', 'http://localhost:8080'),
+        'api_key' => env('NABU_API_KEY'),
+        'model' => env('NABU_MODEL', 'nabu-smart'),
+    ],
+
+    'clash' => [
+        'api_base' => env('CLASH_API_BASE'),
+    ],
+
 ];

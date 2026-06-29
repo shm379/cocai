@@ -1,14 +1,15 @@
 <?php
 
+use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\TaskController;
-use App\Http\Controllers\MapController;
-use Illuminate\Http\Request;
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -20,52 +21,47 @@ Route::get('/', function () {
 
 // 1) صفحه اصلی داشبورد (مثلاً منوی کلی)
 
-// 2) صفحه اطلاعات بازی
-Route::get('/dashboard/game-info', function () {
-    // با دیتابیس یا API چیزی بخوانید
-    $user = auth()->user();
-    $gameProfile = $user->gameProfile->game_data ?? [];
-    // ...
-    return Inertia::render('Dashboard/GameInfoPage', [
-        'gameProfile' => $gameProfile
-    ]);
-})->name('dashboard.game-info');
+// صفحات فرعی داشبورد — همگی نیازمند احراز هویت
+Route::middleware('auth')->group(function () {
+    // 2) صفحه اطلاعات بازی
+    Route::get('/dashboard/game-info', function () {
+        $user = auth()->user();
+        $gameProfile = $user->gameProfile?->game_data ?? [];
 
-// 3) صفحه نیروها
-Route::get('/dashboard/troops', function () {
-    $user = auth()->user();
-    $gameProfile = $user->gameProfile->game_data ?? [];
-    // ...
-    return Inertia::render('Dashboard/TroopsPage', [
-        'gameProfile' => $gameProfile
-        // + اگر لازم است نقشه‌ها یا داده‌های دیگر
-    ]);
-})->name('dashboard.troops');
+        return Inertia::render('Dashboard/GameInfoPage', [
+            'gameProfile' => $gameProfile,
+        ]);
+    })->name('dashboard.game-info');
 
-// 4) صفحه تقویم
-Route::get('/dashboard/calendar', function () {
-    $calendar = auth()->user()->calendars ?? [];
-    return Inertia::render('Dashboard/CalendarPage', [
-        'calendar' => $calendar
-    ]);
-})->name('dashboard.calendar');
+    // 3) صفحه نیروها
+    Route::get('/dashboard/troops', function () {
+        $user = auth()->user();
+        $gameProfile = $user->gameProfile?->game_data ?? [];
 
-// 5) صفحه وظیفهٔ امروز
-Route::get('/dashboard/today-task', function () {
-    $todayTask = auth()->user()->tasks()->latest()->first()->task ?? 'هیچ تسکی تعریف نشده.';
-    return Inertia::render('Dashboard/TodayTaskPage', [
-        'todayTask' => $todayTask
-    ]);
-})->name('dashboard.today-task');
-Route::get('/test-pagination', function (Request $request) {
-    // صفحه فعلی را از query بگیرید یا 1 باشد
-    $page = $request->query('page', 1);
+        return Inertia::render('Dashboard/TroopsPage', [
+            'gameProfile' => $gameProfile,
+        ]);
+    })->name('dashboard.troops');
 
-    // به کامپوننت Vue می‌فرستیم
-    return Inertia::render('MinimalPaginationTest', [
-        'page' => (int) $page,
-    ]);
-})->name('test.pagination');
+    // 4) صفحه تقویم
+    Route::get('/dashboard/calendar', function () {
+        $calendar = auth()->user()->calendars ?? [];
+
+        return Inertia::render('Dashboard/CalendarPage', [
+            'calendar' => $calendar,
+        ]);
+    })->name('dashboard.calendar');
+
+    // 5) صفحه وظیفهٔ امروز
+    Route::get('/dashboard/today-task', function () {
+        $todayTask = optional(auth()->user()->tasks()->latest()->first())->task
+            ?? 'هیچ تسکی تعریف نشده.';
+
+        return Inertia::render('Dashboard/TodayTaskPage', [
+            'todayTask' => $todayTask,
+        ]);
+    })->name('dashboard.today-task');
+});
 // داشبورد
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -76,8 +72,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/tasks/complete', [TaskController::class, 'completeTask'])->name('tasks.complete');
     Route::post('/tasks/daily-plan', [TaskController::class, 'getDailyPlan'])->name('tasks.daily-plan');
     Route::post('/tasks/war-strategy', [TaskController::class, 'getWarStrategy'])->name('tasks.war-strategy');
-    // Route::get('/clash/player', [ClashOfClansController::class, 'getPlayer']);
 
+    // دستیار هوش مصنوعی (چت آزاد)
+    Route::post('/api/chat', [ChatbotController::class, 'query'])->name('chatbot.query');
 });
 Route::post('/save-player-tag', [UserController::class, 'savePlayerTag'])->middleware('auth');
 
@@ -86,5 +83,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-Route::get('/map', [MapController::class, 'crawlMaps']);
-require __DIR__ . '/auth.php';
+
+// کراول نقشه‌ها — عملیات سنگین و حالت‌گردان؛ فقط برای کاربر احراز هویت‌شده.
+// TODO: بهتر است به یک کامند Artisan یا میدلور admin محدود شود.
+Route::get('/map', [MapController::class, 'crawlMaps'])->middleware('auth')->name('map.crawl');
+
+require __DIR__.'/auth.php';

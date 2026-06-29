@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Map;
 use App\Models\Topic;
-use App\Models\TrophyLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,7 +14,7 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         // بررسی `player_tag`
-        if (!$user->player_tag) {
+        if (! $user->player_tag) {
             return Inertia::render('Dashboard', [
                 'user' => $user,
                 'successMessage' => session('success'),
@@ -30,7 +29,7 @@ class DashboardController extends Controller
         $allUnits = \App\Models\Unit::all()->keyBy('name');
 
         // 2. اگر در $gameProfile['troops'] لیستی از نیروها داریم، آیکون هرکدام را از جدول units پر می‌کنیم.
-        if (!empty($gameProfile['troops']) && is_array($gameProfile['troops'])) {
+        if (! empty($gameProfile['troops']) && is_array($gameProfile['troops'])) {
             foreach ($gameProfile['troops'] as $index => $troop) {
                 // troop.name در API بازی یا شیء شما ممکن است دقیقاً با name در جدول units یکی باشد.
                 // اگر متفاوت است، باید تبدیل یا نگاشت کنید.
@@ -47,7 +46,7 @@ class DashboardController extends Controller
         }
 
         // 3. اگر نیاز است برای heroes یا spells هم همین کار را بکنید، شبیه بالا تکرار کنید
-        if (!empty($gameProfile['heroes']) && is_array($gameProfile['heroes'])) {
+        if (! empty($gameProfile['heroes']) && is_array($gameProfile['heroes'])) {
             foreach ($gameProfile['heroes'] as $index => $hero) {
                 $heroName = $hero['name'] ?? null;
                 if ($heroName && isset($allUnits[$heroName])) {
@@ -59,7 +58,7 @@ class DashboardController extends Controller
             }
         }
 
-        if (!empty($gameProfile['spells']) && is_array($gameProfile['spells'])) {
+        if (! empty($gameProfile['spells']) && is_array($gameProfile['spells'])) {
             foreach ($gameProfile['spells'] as $index => $spell) {
                 $spellName = $spell['name'] ?? null;
                 if ($spellName && isset($allUnits[$spellName])) {
@@ -70,19 +69,19 @@ class DashboardController extends Controller
                 }
             }
         }
-        $todayTask   = $user->tasks()->latest()->first()->task ?? 'هیچ تسکی تعریف نشده است.';
-        $calendar    = $user->gameProfile->calendars ?? [];
+        $todayTask = optional($user->tasks()->latest()->first())->task ?? 'هیچ تسکی تعریف نشده است.';
+        $calendar = $user->gameProfile?->calendars ?? [];
 
         // تعداد آیتم‌های صفحه‌بندی
         $perPage = 12;
 
         // دریافت پارامترهای فیلتر و مرتب‌سازی از `Request`
-        $sortBy    = $request->query('sortBy', 'latest');
-        $topicId   = $request->query('topicId', null);
-// در کنترلر
+        $sortBy = $request->query('sortBy', 'latest');
+        $topicId = $request->query('topicId', null);
+        // در کنترلر
         $hallType = $request->query('hallType', null);
 
-// تبدیل به عدد (مثلاً با (int))
+        // تبدیل به عدد (مثلاً با (int))
         $hallType = is_null($hallType) ? null : (int) $hallType;
         $hallLevel = $request->query('hallLevel', null);   // سطح `TH` یا `BH` (مثلاً 10، 11، 12)
 
@@ -101,8 +100,8 @@ class DashboardController extends Controller
         });
 
         // **اعمال فیلتر بر اساس `hallType` و `hallLevel`**
-        if (!is_null($hallType)) {
-            if ((int)$hallType === 0) {
+        if (! is_null($hallType)) {
+            if ((int) $hallType === 0) {
                 $townHallMapsQuery->whereHas('topics', function ($query) {
                     $query->where('hall_type', 0);
                 });
@@ -113,8 +112,8 @@ class DashboardController extends Controller
             }
         }
 
-        if (!is_null($hallLevel)) {
-            if ((int)$hallType === 0) {
+        if (! is_null($hallLevel)) {
+            if ((int) $hallType === 0) {
                 $townHallMapsQuery->whereHas('topics', function ($query) use ($hallLevel) {
                     $query->where('hall_level', $hallLevel);
                 });
@@ -146,39 +145,40 @@ class DashboardController extends Controller
         }
 
         // **اعمال صفحه‌بندی (پس از اعمال فیلتر)**
-        $townHallMaps   = $townHallMapsQuery->paginate($perPage, ['*'], 'thPage', $thPage);
+        $townHallMaps = $townHallMapsQuery->paginate($perPage, ['*'], 'thPage', $thPage);
         $builderHallMaps = $builderHallMapsQuery->paginate($perPage, ['*'], 'bhPage', $bhPage);
 
         // **دریافت لیست `Topic` ها برای فیلتر کردن**
         $topics = Topic::orderBy('name')->get();
 
-// دریافت تاریخچه تروفی برای `game_profile_id` فعلی
-        $trophyHistory = $user->gameProfile->trophyHistory()
-            ->orderBy('created_at', 'asc')
-            ->get(['created_at', 'trophy_count'])
-            ->map(function ($log) {
-                return [
-                    'date' => $log->created_at->format('Y-m-d'),
-                    'trophy' => $log->trophy_count
-                ];
-            });
+        // دریافت تاریخچه تروفی برای `game_profile_id` فعلی
+        $trophyHistory = $user->gameProfile
+            ? $user->gameProfile->trophyHistory()
+                ->orderBy('created_at', 'asc')
+                ->get(['created_at', 'trophy_count'])
+                ->map(function ($log) {
+                    return [
+                        'date' => $log->created_at->format('Y-m-d'),
+                        'trophy' => $log->trophy_count,
+                    ];
+                })
+            : collect();
 
         return Inertia::render('Dashboard', [
-            'user'           => $user,
-            'gameProfile'    => $gameProfile,
-            'todayTask'      => $todayTask,
+            'user' => $user,
+            'gameProfile' => $gameProfile,
+            'todayTask' => $todayTask,
             'successMessage' => session('success'),
-            'errorMessage'   => session('error'),
-            'calendar'       => $calendar,
-            'townHallMaps'   => $townHallMaps,
-            'builderHallMaps'=> $builderHallMaps,
-            'topics'         => $topics,
-            'selectedTopic'  => $topicId,
-            'selectedSort'   => $sortBy,
-            'selectedHallType'  => $hallType,
-            'selectedHallLevel' => (int)$hallLevel,
-            "trophyHistory"=> $trophyHistory,
+            'errorMessage' => session('error'),
+            'calendar' => $calendar,
+            'townHallMaps' => $townHallMaps,
+            'builderHallMaps' => $builderHallMaps,
+            'topics' => $topics,
+            'selectedTopic' => $topicId,
+            'selectedSort' => $sortBy,
+            'selectedHallType' => $hallType,
+            'selectedHallLevel' => (int) $hallLevel,
+            'trophyHistory' => $trophyHistory,
         ]);
     }
 }
-
