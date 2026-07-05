@@ -1,0 +1,95 @@
+x-app-build: &app-build
+  context: .
+  dockerfile: Dockerfile
+
+x-app-environment: &app-environment
+  APP_NAME: ${APP_NAME:-cocai}
+  APP_ENV: ${APP_ENV:-production}
+  APP_KEY: ${APP_KEY:?APP_KEY is required}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_URL: ${APP_URL:-http://localhost}
+  APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+  LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: ${DB_DATABASE:-cocai}
+  DB_USERNAME: ${DB_USERNAME:-cocai}
+  DB_PASSWORD: ${SERVICE_PASSWORD_DB}
+  SESSION_DRIVER: ${SESSION_DRIVER:-database}
+  SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+  CACHE_STORE: ${CACHE_STORE:-database}
+  QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
+  FILESYSTEM_DISK: ${FILESYSTEM_DISK:-local}
+  MAIL_MAILER: ${MAIL_MAILER:-log}
+  MAIL_HOST: ${MAIL_HOST:-127.0.0.1}
+  MAIL_PORT: ${MAIL_PORT:-2525}
+  MAIL_USERNAME: ${MAIL_USERNAME:-null}
+  MAIL_PASSWORD: ${MAIL_PASSWORD:-null}
+  MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
+  MAIL_FROM_NAME: ${MAIL_FROM_NAME:-cocai}
+  CLASH_API_BASE: ${CLASH_API_BASE:-}
+  NABU_BASE_URL: ${NABU_BASE_URL:-http://localhost:8080}
+  NABU_API_KEY: ${NABU_API_KEY:-}
+  NABU_MODEL: ${NABU_MODEL:-nabu-smart}
+  RUN_STORAGE_LINK: ${RUN_STORAGE_LINK:-true}
+
+services:
+  app:
+    build: *app-build
+    restart: unless-stopped
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+    expose:
+      - "80"
+    volumes:
+      - laravel-storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  queue:
+    build: *app-build
+    restart: unless-stopped
+    command: php artisan queue:work database --sleep=3 --tries=3 --timeout=90
+    environment:
+      <<: *app-environment
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - laravel-storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+    exclude_from_hc: true
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-cocai}
+      MYSQL_USER: ${DB_USERNAME:-cocai}
+      MYSQL_PASSWORD: ${SERVICE_PASSWORD_DB}
+      MYSQL_ROOT_PASSWORD: ${SERVICE_PASSWORD_DB_ROOT}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} --password=$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    exclude_from_hc: true
+
+volumes:
+  laravel-storage:
+  mysql-data:
