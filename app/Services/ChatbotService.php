@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Log;
  * Talks to our own AI gateway (NabuGate), an OpenAI-compatible endpoint that
  * routes the `nabu-smart` alias to Claude/GPT with fallback. We never call a
  * vendor (or mu.chat) directly — only NabuGate.
+ *
+ * منطق توصیه دیگر «prompt خام» نیست: هر پیام با «بلوک واقعیت» تولیدشده توسط
+ * ProgressionService زمین‌گیر (ground) می‌شود و مدل حق ندارد عددی خارج از آن بسازد.
  */
 class ChatbotService
 {
@@ -18,18 +22,13 @@ class ChatbotService
 
     protected $model;
 
-    public function __construct()
+    public function __construct(protected ProgressionService $progression)
     {
         $this->baseUrl = config('services.nabu.base_url');
         $this->apiKey = config('services.nabu.api_key');
         $this->model = config('services.nabu.model', 'nabu-smart');
     }
 
-    /**
-     * System persona: an expert Clash of Clans strategist that answers in Persian.
-     * This is the "grounding" — the model's CoC knowledge is steered by the player's
-     * real game_data, which callers inject into the user message.
-     */
     protected function systemPrompt(): string
     {
         return <<<'PROMPT'
@@ -40,20 +39,45 @@ army compositions and attack strategies per Town Hall, war attacks, farming, and
 Rules:
 - Always answer in fluent, natural Persian (فارسی).
 - Be concrete and actionable: name specific troops, levels, and upgrade priorities.
-- Base every recommendation on the player's actual data given in the message
-  (Town Hall level, hero levels, troop levels, resources). Never give generic advice
-  that ignores their data.
+- A FACTS block computed from the player's real API data may be included in the message.
+  Treat it as the single source of truth. Every level, cap, percentage, and priority you
+  mention MUST come from that block. NEVER invent upgrade costs, times, or level caps —
+  if a number is not in the FACTS block, do not state it.
+- If no FACTS block is present, give strategy advice without inventing specific numbers.
 - Keep answers tight and practical — no filler, no disclaimers.
 PROMPT;
     }
 
     /**
-     * Core call to the NabuGate chat-completions endpoint.
-     *
-     * @param  array  $messages  OpenAI-style [{role, content}, ...]
-     * @return string assistant content ('' on failure)
+     * بلوک واقعیت: خلاصهٔ قطعی وضعیت بازیکن از موتور تحلیل.
+     * هر prompt توصیه‌ای باید این را حمل کند.
      */
-    protected function chat(array $messages): string
+    public function buildFactBlock(User $user): ?string
+    {
+        $gameData = $user->gameProfile->game_data ?? [];
+        if (empty($gameData)) {
+            return null;
+        }
+
+        $analysis = $this->progression->analyze($gameData);
+        if (! ($analysis['ok'] ?? false)) {
+            return null;
+        }
+
+        $armies = $analysis['armies'];
+        $warNames = implode('، ', array_map(fn ($a) => $a['name_fa'], $armies['war'] ?? []));
+
+        return "=== FACTS (computed from live game data — the only allowed source of numbers) ===\n"
+            .$analysis['summary_fa']
+            ."\nارتش‌های متای جنگی برای این تاون‌هال: {$warNames}"
+            ."\n=== END FACTS ===";
+    }
+
+    /**
+     * Core call to the NabuGate chat-completions endpoint.
+     * یک بار retry برای خطاهای گذرا؛ '' فقط وقتی هر دو تلاش شکست بخورد.
+     */
+    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 1500): string
     {
         if (empty($this->baseUrl)) {
             Log::error('NabuGate base_url is not configured (services.nabu.base_url).');
@@ -61,37 +85,42 @@ PROMPT;
             return '';
         }
 
-        try {
-            $response = Http::timeout(120)
-                ->connectTimeout(30)
-                ->withToken($this->apiKey)
-                ->acceptJson()
-                ->post(rtrim($this->baseUrl, '/').'/v1/chat/completions', [
-                    'model' => $this->model,
-                    'messages' => $messages,
-                    'temperature' => 0.4,
-                ]);
-        } catch (\Throwable $e) {
-            Log::error('NabuGate request failed: '.$e->getMessage());
+        foreach ([1, 2] as $attempt) {
+            try {
+                $response = Http::timeout(120)
+                    ->connectTimeout(30)
+                    ->withToken($this->apiKey)
+                    ->acceptJson()
+                    ->post(rtrim($this->baseUrl, '/').'/v1/chat/completions', [
+                        'model' => $this->model,
+                        'messages' => $messages,
+                        'temperature' => $temperature,
+                        'max_tokens' => $maxTokens,
+                    ]);
 
-            return '';
+                if ($response->ok()) {
+                    return (string) data_get($response->json(), 'choices.0.message.content', '');
+                }
+
+                Log::error("NabuGate error (attempt {$attempt}) ".$response->status().': '.$response->body());
+
+                // خطای کلاینت (۴xx) با تکرار درست نمی‌شود
+                if ($response->clientError()) {
+                    return '';
+                }
+            } catch (\Throwable $e) {
+                Log::error("NabuGate request failed (attempt {$attempt}): ".$e->getMessage());
+            }
         }
 
-        if (! $response->ok()) {
-            Log::error('NabuGate error '.$response->status().': '.$response->body());
-
-            return '';
-        }
-
-        return (string) data_get($response->json(), 'choices.0.message.content', '');
+        return '';
     }
 
     /**
      * Send a free-form query. Returns text, or a decoded array when $output_json is true.
      *
      * Signature kept backward-compatible with existing callers; the $id /
-     * $chatbotData / $conversationId params are accepted but no longer used
-     * (NabuGate is stateless — context is carried in the message itself).
+     * $chatbotData / $conversationId params are accepted but no longer used.
      *
      * @return string|array
      */
@@ -105,7 +134,7 @@ PROMPT;
         $content = $this->chat([
             ['role' => 'system', 'content' => $system],
             ['role' => 'user', 'content' => (string) $query],
-        ]);
+        ], $output_json ? 0.2 : 0.4);
 
         if ($content === '') {
             return $output_json ? [] : 'خطا در ارتباط با سرویس هوش مصنوعی. لطفاً بعداً تلاش کنید.';
@@ -121,6 +150,17 @@ PROMPT;
     }
 
     /**
+     * چت آزاد کاربر، grounded با بلوک واقعیت.
+     */
+    public function answerUserQuestion(User $user, string $question): string
+    {
+        $facts = $this->buildFactBlock($user);
+        $content = $facts ? $facts."\n\nسؤال بازیکن: ".$question : $question;
+
+        return $this->sendQuery($content, $user->id, [], false);
+    }
+
+    /**
      * Generate a strategy or plan based on the user's real game data.
      *
      * @param  \App\Models\User  $user
@@ -129,21 +169,20 @@ PROMPT;
      */
     public function generateStrategy($user, $type)
     {
-        $gameData = $user->gameProfile->game_data ?? [];
-        $playerTag = $user->player_tag;
+        $facts = $this->buildFactBlock($user);
 
-        if (empty($gameData)) {
+        if ($facts === null) {
             return 'اطلاعات بازی شما یافت نشد. لطفاً ابتدا پروفایل خود را به‌روزرسانی کنید.';
         }
 
-        $context = "Player Tag: {$playerTag}. Game Data: ".json_encode($gameData, JSON_UNESCAPED_UNICODE);
-
         if ($type === 'daily_plan') {
-            $prompt = 'بر اساس دادهٔ بازیکن زیر، یک برنامهٔ روزانهٔ دقیق بده: چه ارتقاهایی را اولویت بده '
-                ."(ساختمان‌ها، نیروها، قهرمان‌ها) با توجه به سطح تاون‌هال فعلی، و چه منابعی را فارم کند.\n\n".$context;
+            $prompt = 'بر اساس بلوک FACTS زیر یک برنامهٔ روزانهٔ دقیق بده: کدام آپگریدها را شروع کند '
+                .'(به همان ترتیب اولویتِ داده‌شده)، و با کدام ارتش فارم کند. فقط از اطلاعات FACTS استفاده کن.'
+                ."\n\n".$facts;
         } elseif ($type === 'war_strategy') {
-            $prompt = 'بر اساس دادهٔ بازیکن زیر، بهترین استراتژی‌های حملهٔ Clan War را پیشنهاد بده. '
-                ."سطح نیروها و قهرمان‌ها را در نظر بگیر. ترکیب ارتش و نقشهٔ حمله را قدم‌به‌قدم توضیح بده.\n\n".$context;
+            $prompt = 'بر اساس بلوک FACTS زیر، از بین ارتش‌های متای ذکرشده بهترین را برای سطح فعلی نیروها و هیروهای '
+                .'این بازیکن انتخاب کن و نقشهٔ حمله را قدم‌به‌قدم توضیح بده. فقط از اطلاعات FACTS استفاده کن.'
+                ."\n\n".$facts;
         } else {
             return 'نوع استراتژی نامعتبر است.';
         }
@@ -152,7 +191,8 @@ PROMPT;
     }
 
     /**
-     * Generate a single fresh "today task" for the user.
+     * تسک امروز: انتخاب قطعی از صف آپگرید موتور؛ LLM فقط لحن را طبیعی می‌کند.
+     * اگر LLM در دسترس نبود، متن قطعی خودمان برگردانده می‌شود — هیچ‌وقت خالی نیست.
      *
      * @param  \App\Models\User  $user
      * @return string
@@ -160,18 +200,42 @@ PROMPT;
     public function generateNewTask($user)
     {
         $gameData = $user->gameProfile->game_data ?? [];
-        $context = ! empty($gameData)
-            ? "\n\nPlayer Data: ".json_encode($gameData, JSON_UNESCAPED_UNICODE)
-            : '';
+        if (empty($gameData)) {
+            return 'اطلاعات بازی شما یافت نشد. لطفاً ابتدا تگ بازیکن خود را ثبت کنید.';
+        }
 
-        $query = 'فقط مهم‌ترین کاری که امروز باید برای پیشرفت و بردن تاون‌هال انجام بدهم را در حداکثر ۳ خط بگو. '
-            .'به تقویم نیازی ندارم، فقط اقدام امروز.'.$context;
+        $analysis = $this->progression->analyze($gameData);
+        if (! ($analysis['ok'] ?? false)) {
+            return 'دادهٔ بازی قابل تحلیل نیست. پروفایل را به‌روزرسانی کنید.';
+        }
 
-        return $this->sendQuery($query, $user->id, [], false);
+        $top = $analysis['upgrade_queue'][0] ?? null;
+        if ($top === null) {
+            return 'همه‌چیز مکس است! وقت بردن تاون‌هال '.($analysis['town_hall'] + 1).' است.';
+        }
+
+        $deterministic = "مهم‌ترین کار امروز: {$top['name']} را از لِوِل {$top['current']} به سمت {$top['target']} ببر. "
+            .$top['reason_fa'];
+
+        $farm = $analysis['armies']['farm'][0]['name_fa'] ?? null;
+        if ($farm) {
+            $deterministic .= " برای هزینه‌اش با «{$farm}» فارم کن.";
+        }
+
+        $polished = $this->sendQuery(
+            "این توصیهٔ محاسبه‌شده را در حداکثر ۳ خط، دوستانه و انگیزشی بازنویسی کن. عدد یا توصیهٔ جدید اضافه نکن:\n\n".$deterministic,
+            $user->id,
+            [],
+            false
+        );
+
+        // شکست LLM نباید تسک را از بین ببرد
+        return str_starts_with($polished, 'خطا در ارتباط') ? $deterministic : $polished;
     }
 
     /**
-     * Generate a multi-day upgrade calendar as a structured array.
+     * تقویم چندروزه — کاملاً قطعی از صف آپگرید ساخته می‌شود؛ بدون LLM،
+     * بدون زمان‌های ساختگی. هر روز: یک هدف آپگرید + فارم مرتبط.
      *
      * @param  \App\Models\User  $user
      * @return array shape: ['days' => [['day' => int, 'task' => string], ...]]
@@ -179,26 +243,36 @@ PROMPT;
     public function generateCalendar($user): array
     {
         $gameData = $user->gameProfile->game_data ?? [];
-
         if (empty($gameData)) {
             return [];
         }
 
-        $prompt = 'بر اساس دادهٔ بازیکن زیر، یک برنامهٔ ارتقای چندروزه برای Clash of Clans بساز. '
-            .'خروجی را فقط به صورت JSON معتبر با این ساختار برگردان: '
-            .'{"days":[{"day":1,"task":"..."}]} . '
-            .'هر task یک جملهٔ کوتاه، فارسی و عملی باشد. بین ۷ تا ۱۴ روز.'."\n\n"
-            .'Player Data: '.json_encode($gameData, JSON_UNESCAPED_UNICODE);
+        $analysis = $this->progression->analyze($gameData);
+        if (! ($analysis['ok'] ?? false)) {
+            return [];
+        }
 
-        $content = $this->chat([
-            ['role' => 'system', 'content' => $this->systemPrompt()],
-            ['role' => 'user', 'content' => $prompt],
-        ]);
+        $queue = $analysis['upgrade_queue'];
+        if (empty($queue)) {
+            return ['days' => [['day' => 1, 'task' => 'همه‌چیز مکس است — آمادهٔ تاون‌هال بعدی شو.']]];
+        }
 
-        $json = $this->extractJsonFromText($content);
-        $data = $json ? json_decode($json, true) : null;
+        $farm = $analysis['armies']['farm'][0]['name_fa'] ?? 'ارتش فارم';
+        $days = [];
+        $dayNo = 1;
 
-        return is_array($data) ? $data : [];
+        foreach (array_slice($queue, 0, 10) as $i => $item) {
+            $verb = $item['type'] === 'hero' ? 'آپگرید هیرو' : ($item['type'] === 'spell' ? 'آپگرید طلسم در لَب' : 'آپگرید نیرو در لَب');
+            $task = "{$verb}: {$item['name']} ({$item['current']} → {$item['target']}). {$item['reason_fa']}";
+
+            if ($i % 2 === 1) {
+                $task .= " + فارم منابع با {$farm}.";
+            }
+
+            $days[] = ['day' => $dayNo++, 'task' => $task];
+        }
+
+        return ['days' => $days];
     }
 
     /**

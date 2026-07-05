@@ -23,20 +23,8 @@ class ChatbotController extends Controller
 
         $user = auth()->user();
 
-        // افزودن تگ بازیکن به‌عنوان زمینه تا پاسخ شخصی‌سازی شود
-        $query = $validated['question'];
-        if ($user && $user->player_tag) {
-            $query = "Player Tag: {$user->player_tag}. ".$query;
-        }
-
-        // شناسه‌ی پایدار برای حفظ مکالمه در کش
-        $id = $user?->id ?? 'guest';
-
-        // بازیابی داده‌های چت‌بات
-        $chatbotData = $this->chatbotService->getChatbotData();
-
-        // ارسال درخواست به چت‌بات و دریافت متن کامل پاسخ
-        $response = $this->chatbotService->sendQuery($query, $id, $chatbotData, false);
+        // پاسخ grounded با بلوک واقعیتِ محاسبه‌شده از دادهٔ واقعی بازیکن
+        $response = $this->chatbotService->answerUserQuestion($user, $validated['question']);
 
         // پاسخ را به کاربر بازگردانید
         return response()->json(['answer' => $response]);

@@ -80,10 +80,11 @@ class User extends Authenticatable
         // به عنوان مثال فرض کنید که تسک‌های امروز برای کاربر از جدول `tasks` گرفته می‌شود.
         $todayTask = Task::where('user_id', $this->id)
             ->whereDate('created_at', now()->toDateString()) // جستجوی تسک‌های امروز
+            ->latest()
             ->first();
 
-        // اگر تسک امروز موجود است، مقدار آن را برمی‌گردانیم
-        return $todayTask ? $todayTask->description : 'هیچ تسکی برای امروز تعیین نشده است';
+        // ستون متن تسک `task` است
+        return $todayTask ? $todayTask->task : 'هیچ تسکی برای امروز تعیین نشده است';
     }
 
     public function calendars()

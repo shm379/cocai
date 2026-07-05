@@ -1,0 +1,110 @@
+{
+  "data_version": "2025-03-th17",
+  "th": {
+    "7": {
+      "war": [
+        { "name": "Mass Dragon", "name_fa": "دراگون خالص", "units": ["Dragon"], "spells": ["Rage Spell", "Healing Spell", "Lightning Spell"], "guide_fa": "۱۰ دراگون + بالون در CC. با لایتنینگ یک ضدهوایی را بزن یا از سمت ضدهوایی ضعیف حمله کن. ریج را روی دسته دراگون‌ها وسط راه بریز." }
+      ],
+      "farm": [
+        { "name": "Barch", "name_fa": "بارچ (بربر + آرچر)", "units": ["Barbarian", "Archer"], "spells": [], "guide_fa": "کلکتورهای بیرونی را با بربر جلو و آرچر پشت بزن. ارزان و سریع برای فارم طلا و اکسیر." }
+      ]
+    },
+    "8": {
+      "war": [
+        { "name": "DragLoon", "name_fa": "دراگ‌لون", "units": ["Dragon", "Balloon"], "spells": ["Rage Spell", "Healing Spell"], "guide_fa": "۸ دراگون + ۵ بالون. بالون‌ها را جلوی دراگون‌ها روی دیفنس‌های هوایی بفرست." },
+        { "name": "GoWiPe", "name_fa": "گو-وی-پکا", "units": ["Golem", "Wizard", "P.E.K.K.A"], "spells": ["Rage Spell", "Healing Spell"], "guide_fa": "گولم جلو، ویزارد پاک‌سازی، پکا ضربهٔ اصلی. برای بیس‌های زمینی‌محور." }
+      ],
+      "farm": [
+        { "name": "GiBarch", "name_fa": "جای‌بارچ", "units": ["Giant", "Barbarian", "Archer", "Wall Breaker"], "spells": ["Healing Spell"], "guide_fa": "جاینت تانک، بربر/آرچر پشت سر. برای فارم منابع کافی است." }
+      ]
+    },
+    "9": {
+      "war": [
+        { "name": "LaLoon", "name_fa": "لاوالون", "units": ["Lava Hound", "Balloon", "Minion"], "spells": ["Rage Spell", "Haste Spell", "Poison Spell"], "guide_fa": "کوئین واک برای باز کردن یک سمت، بعد لاوا + بالون از دو جهت. هیست روی بالون‌ها." },
+        { "name": "Witch Slap", "name_fa": "ویچ اسلپ", "units": ["Witch", "Golem", "Bowler"], "spells": ["Jump Spell", "Rage Spell", "Poison Spell"], "guide_fa": "حمله از یک جبهه با ویچ و گولم؛ جامپ روی دیوار مرکزی." }
+      ],
+      "farm": [
+        { "name": "Barch", "name_fa": "بارچ", "units": ["Barbarian", "Archer"], "spells": [], "guide_fa": "فارم سریع کلکتورها. لوت مرده را هدف بگیر." }
+      ]
+    },
+    "10": {
+      "war": [
+        { "name": "QC LaLoon", "name_fa": "کوئین‌چارج لاوالون", "units": ["Healer", "Lava Hound", "Balloon"], "spells": ["Rage Spell", "Haste Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "کوئین + ۴ هیلر برای گرفتن ضدهوایی‌ها، بعد لاوالون. اینفرنوها را فریز کن." },
+        { "name": "Zap Witch", "name_fa": "زپ ویچ", "units": ["Witch", "Golem", "Bowler"], "spells": ["Lightning Spell", "Earthquake Spell", "Rage Spell"], "guide_fa": "دو اینفرنو را با زپ + ارث‌کوئیک حذف کن، بعد پوش زمینی از یک جبهه." }
+      ],
+      "farm": [
+        { "name": "Mass Miner", "name_fa": "ماینر خالص", "units": ["Miner"], "spells": ["Healing Spell"], "guide_fa": "ماینرها زیر زمین می‌روند و از تله‌ها رد می‌شوند؛ هیل پشت سرشان." }
+      ]
+    },
+    "11": {
+      "war": [
+        { "name": "Zap Witch", "name_fa": "زپ ویچ", "units": ["Witch", "Golem", "Bowler", "Healer"], "spells": ["Lightning Spell", "Earthquake Spell", "Rage Spell", "Poison Spell"], "guide_fa": "ایگل یا اینفرنوها را با زپ‌کوئیک بردار، پوش ویچ از یک جبهه با وардن." },
+        { "name": "QC Hybrid", "name_fa": "کوئین‌چارج هیبرید", "units": ["Healer", "Miner", "Hog Rider"], "spells": ["Healing Spell", "Rage Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "کوئین‌چارج برای CC و یک ضلع، بعد ماینر + هاگ با هیل‌های پیاپی." },
+        { "name": "E-Drag Loon", "name_fa": "الکترو دراگون + بالون", "units": ["Electro Dragon", "Balloon"], "spells": ["Rage Spell", "Freeze Spell"], "guide_fa": "ساده و مؤثر وقتی هیروها در آپگرید هستند. زنجیرهٔ الکترو را از ضلع کم‌دیفنس شروع کن." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی (سوپر)", "units": ["Goblin"], "spells": [], "guide_fa": "با سوپرگوبلین فقط استوریج‌ها و تاون‌هال را بزن؛ سریع‌ترین فارم." }
+      ]
+    },
+    "12": {
+      "war": [
+        { "name": "QC Hybrid", "name_fa": "کوئین‌چارج هیبرید", "units": ["Healer", "Miner", "Hog Rider", "Siege Barracks"], "spells": ["Healing Spell", "Rage Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "استاندارد طلایی TH12. کوئین‌چارج، بعد هیبرید از ضلع مقابل با هیل و فریز حساب‌شده." },
+        { "name": "Yeti Smash", "name_fa": "یتی اسمش", "units": ["Yeti", "Bowler", "Wall Wrecker"], "spells": ["Jump Spell", "Rage Spell", "Freeze Spell"], "guide_fa": "وال‌رکر یتی‌ها را به مرکز می‌برد؛ ریج و فریز روی هستهٔ بیس." },
+        { "name": "Zap Drags", "name_fa": "زپ دراگ", "units": ["Dragon", "Balloon"], "spells": ["Lightning Spell", "Earthquake Spell", "Rage Spell"], "guide_fa": "دو ضدهوایی را با زپ حذف کن و با دراگون‌ها از همان سمت پوش کن." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "فارم برق‌آسای استوریج و تاون‌هال." }
+      ]
+    },
+    "13": {
+      "war": [
+        { "name": "QC Hybrid", "name_fa": "کوئین‌چارج هیبرید", "units": ["Healer", "Miner", "Hog Rider", "Log Launcher"], "spells": ["Healing Spell", "Rage Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "همچنان قوی‌ترین استراتژی همه‌منظوره. رویال چمپیون را برای پاک‌سازی انتهایی نگه دار." },
+        { "name": "Zap LaLoon", "name_fa": "زپ لاوالون", "units": ["Lava Hound", "Balloon", "Headhunter"], "spells": ["Lightning Spell", "Earthquake Spell", "Haste Spell", "Freeze Spell"], "guide_fa": "ضدهوایی‌ها را با زپ کم کن، مسیر بالون را با هیست بساز." },
+        { "name": "Yeti Bowler", "name_fa": "یتی بولر اسمش", "units": ["Yeti", "Bowler", "Dragon Rider", "Log Launcher"], "spells": ["Jump Spell", "Rage Spell", "Invisibility Spell"], "guide_fa": "پوش مرکزی با لاگ‌لانچر؛ اینویزیبیلیتی روی یتی‌ها جلوی اسکترشات." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "فارم دارک برای هیروها را فراموش نکن." }
+      ]
+    },
+    "14": {
+      "war": [
+        { "name": "QC Hybrid", "name_fa": "کوئین‌چارج هیبرید", "units": ["Healer", "Miner", "Hog Rider", "Flame Flinger"], "spells": ["Healing Spell", "Rage Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "با پت مناسب (یونیکورن روی کوئین) قدرت دوچندان دارد." },
+        { "name": "Zap Lalo", "name_fa": "زپ لالو", "units": ["Lava Hound", "Balloon", "Headhunter"], "spells": ["Lightning Spell", "Earthquake Spell", "Haste Spell"], "guide_fa": "مهارت‌محور اما بالاترین سقف قدرت را دارد." },
+        { "name": "Super Bowler Smash", "name_fa": "سوپر بولر اسمش", "units": ["Bowler", "Electro Titan", "Battle Drill"], "spells": ["Rage Spell", "Invisibility Spell", "Overgrowth Spell"], "guide_fa": "سوپر بولر + ریکال؛ پوش سنگین یک‌جبهه‌ای." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "فارم روزانه برای هزینه‌های سنگین TH14." }
+      ]
+    },
+    "15": {
+      "war": [
+        { "name": "Zap Titan", "name_fa": "زپ الکترو تایتان", "units": ["Electro Titan", "Balloon", "Headhunter"], "spells": ["Lightning Spell", "Earthquake Spell", "Rage Spell", "Recall Spell"], "guide_fa": "تایتان‌ها با ریکال دوبار استفاده می‌شوند؛ زپ روی مونولیت/اسکتر." },
+        { "name": "QC Hybrid", "name_fa": "کوئین‌چارج هیبرید", "units": ["Healer", "Miner", "Hog Rider", "Battle Drill"], "spells": ["Healing Spell", "Rage Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "هنوز معتبر؛ فینیکس روی کوئین برای چارج امن‌تر." },
+        { "name": "Root Rider Smash", "name_fa": "روت رایدر اسمش", "units": ["Root Rider", "Witch", "Log Launcher"], "spells": ["Rage Spell", "Jump Spell", "Overgrowth Spell"], "guide_fa": "روت رایدرها دیوارها را نادیده می‌گیرند؛ پوش مستقیم به هسته." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "اوره و دارک را برای هیرو و پت جمع کن." }
+      ]
+    },
+    "16": {
+      "war": [
+        { "name": "Root Rider Spam", "name_fa": "روت رایدر اسپم", "units": ["Root Rider", "Valkyrie", "Log Launcher"], "spells": ["Rage Spell", "Overgrowth Spell", "Recall Spell"], "guide_fa": "اورگروس روی بخش کناری، پوش روت رایدر از مرکز با هیروها." },
+        { "name": "Hydra", "name_fa": "هیدرا (دراگون + دراگون رایدر)", "units": ["Dragon", "Dragon Rider", "Balloon"], "spells": ["Rage Spell", "Freeze Spell", "Recall Spell"], "guide_fa": "پوش هوایی سنگین با ریکال؛ جلوی بیس‌های زمینی‌محور عالی." },
+        { "name": "QC Lalo", "name_fa": "کوئین‌چارج لالو", "units": ["Healer", "Lava Hound", "Balloon"], "spells": ["Rage Spell", "Haste Spell", "Freeze Spell"], "guide_fa": "برای بازیکنان حرفه‌ای؛ بالاترین درصد سه‌ستاره در دست ماهر." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "فارم سریع؛ ریسورس TH16 سنگین است." }
+      ]
+    },
+    "17": {
+      "war": [
+        { "name": "Hydra", "name_fa": "هیدرا", "units": ["Dragon", "Dragon Rider", "Balloon", "Furnace"], "spells": ["Rage Spell", "Freeze Spell", "Recall Spell"], "guide_fa": "پوش هوایی با ریکال دوموجه؛ مراقب مولتی‌ژئومانسر و ضدهوایی‌های تقویتی باش." },
+        { "name": "Druid Smash", "name_fa": "دروید اسمش", "units": ["Root Rider", "Druid", "Thrower", "Log Launcher"], "spells": ["Rage Spell", "Overgrowth Spell", "Recall Spell"], "guide_fa": "دروید‌ها هیل زمینی می‌دهند؛ پوش یک‌جبهه‌ای سنگین با هر پنج هیرو." },
+        { "name": "QC Hybrid", "name_fa": "کوئین‌چارج هیبرید", "units": ["Healer", "Miner", "Hog Rider", "Battle Drill"], "spells": ["Healing Spell", "Rage Spell", "Freeze Spell", "Poison Spell"], "guide_fa": "کلاسیک همیشه‌جواب؛ نیازمند هیروهای بالا." }
+      ],
+      "farm": [
+        { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "فارم روزانه؛ هزینه‌های TH17 بالاترین حد بازی است." }
+      ]
+    }
+  }
+}

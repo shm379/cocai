@@ -16,36 +16,20 @@ class TaskController extends Controller
     }
 
     /**
-     * تولید تسک جدید از چت‌بات
+     * تولید تسک جدید — از موتور تحلیل پیشرفت (قطعی) با بیان LLM.
      */
     public function generateTask(Request $request)
     {
         $user = auth()->user();
 
-        $query = $user->player_tag.' '; // پیام موردنظر برای چت‌بات
-        if ($user->todayTask) {
-            $query .= $user->todayTask;
-        }
-        // گرفتن اطلاعات چت‌بات (می‌توانید از کش یا دیتابیس ذخیره کنید)
-        $chatbotData = \Cache::get('chatbot', []);
+        $text = $this->chatbotService->generateNewTask($user);
 
-        try {
-            // ارسال درخواست به سرویس هوش مصنوعی (خروجی متنی)
-            $response = $this->chatbotService->sendQuery($query, $user->id, [], false);
+        $task = Task::create([
+            'user_id' => $user->id,
+            'task' => $text,
+        ]);
 
-            // ذخیره تسک جدید در دیتابیس
-            $task = Task::create([
-                'user_id' => $user->id,
-                'task' => $response,
-            ]);
-
-            // ذخیره اطلاعات به‌روزرسانی شده چت‌بات
-            // \Cache::put('chatbot', $response['chatbotData'], now()->addHours(24));
-
-            return $task;
-        } catch (\Exception $e) {
-            return false;
-        }
+        return response()->json(['task' => $task]);
     }
 
     /**
@@ -65,17 +49,15 @@ class TaskController extends Controller
     {
         $user = auth()->user();
 
-        // فرض بر این است که تسک‌ها در جدول Task ذخیره می‌شوند
-        // ما باید آخرین تسک را پیدا کنیم و وضعیت آن را تغییر دهیم
-        $task = $user->tasks()->latest()->first();
+        // اگر id مشخص شده همان تسک؛ وگرنه آخرین تسکِ باز
+        $query = $user->tasks()->where('completed', false);
+        $task = $request->filled('task_id')
+            ? $query->where('id', $request->integer('task_id'))->first()
+            : $query->latest()->first();
 
-        // اگر تسکی وجود دارد، آن را به حالت کامل تغییر می‌دهیم
         if ($task) {
-            $task->update(['completed' => true]);  // یا هر فیلد دیگری که برای نشان دادن تکمیل استفاده می‌کنید
+            $task->update(['completed' => true]);
         }
-        // $newTask = $this->generateTask($user);
-
-        // بازگشت پاسخ به کلاینت
 
         return to_route('dashboard')->with('successMessage', 'تسک انجام شد');
     }

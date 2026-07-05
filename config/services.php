@@ -43,6 +43,7 @@ return [
 
     'clash' => [
         'api_base' => env('CLASH_API_BASE'),
+        'api_token' => env('CLASH_API_TOKEN'),
     ],
 
 ];

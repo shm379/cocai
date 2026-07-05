@@ -3,22 +3,25 @@
 namespace App\Jobs;
 
 use App\Models\Calendar;
-use App\Models\GameProfile;
 use App\Models\User;
 use App\Services\ChatbotService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 
-class SendChatbotQuery implements ShouldQueue
+class SendChatbotQuery implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $userId;
 
-    public $timeout = 1200; // حداکثر مدت زمان اجرای جاب در ثانیه
+    public $timeout = 300;
+
+    public $tries = 2;
 
     public function __construct($userId)
     {
@@ -26,14 +29,25 @@ class SendChatbotQuery implements ShouldQueue
     }
 
     /**
-     * Build a multi-day upgrade calendar for the user via the AI gateway and persist it.
+     * جلوگیری از صف شدن دو جاب هم‌زمان برای یک کاربر.
+     */
+    public function uniqueId(): string
+    {
+        return (string) $this->userId;
+    }
+
+    /**
+     * ساخت تقویم ارتقا — از موتور قطعی ProgressionService (بدون LLM).
      */
     public function handle(ChatbotService $chatbotService)
     {
-        set_time_limit(1200);
-
         $user = User::find($this->userId);
         if (! $user) {
+            return;
+        }
+
+        $gameProfile = $user->gameProfile;
+        if (! $gameProfile) {
             return;
         }
 
@@ -42,25 +56,22 @@ class SendChatbotQuery implements ShouldQueue
             return;
         }
 
-        $gameProfile = GameProfile::where('user_id', $this->userId)->latest()->first();
-        if (! $gameProfile) {
-            return;
-        }
+        // جایگزینی اتمیک تقویم قبلی
+        DB::transaction(function () use ($calendar, $gameProfile) {
+            Calendar::where('game_profile_id', $gameProfile->id)->delete();
 
-        // تقویم قبلی این پروفایل را پاک کن تا برنامهٔ تازه جایگزین شود
-        Calendar::where('game_profile_id', $gameProfile->id)->delete();
+            foreach ($calendar['days'] as $task) {
+                if (! isset($task['day'], $task['task']) || ! is_int($task['day']) || $task['day'] < 1) {
+                    continue;
+                }
 
-        foreach ($calendar['days'] as $task) {
-            if (! isset($task['day'], $task['task'])) {
-                continue;
+                Calendar::create([
+                    'user_id' => $this->userId,
+                    'game_profile_id' => $gameProfile->id,
+                    'day' => $task['day'],
+                    'task' => (string) $task['task'],
+                ]);
             }
-
-            Calendar::create([
-                'user_id' => $this->userId,
-                'game_profile_id' => $gameProfile->id,
-                'day' => $task['day'],
-                'task' => $task['task'],
-            ]);
-        }
+        });
     }
 }
