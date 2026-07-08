@@ -3,17 +3,23 @@ FROM composer:2 AS vendor
 WORKDIR /app
 
 COPY composer.json composer.lock ./
+# The composer:2 tag floats its PHP version (currently 8.5), but locked packages
+# (nette/*) cap at PHP 8.4 and the runtime image is PHP 8.3. This stage only
+# assembles vendor files, so skip the build-time platform check — the real PHP
+# version + extensions are validated at runtime (php:8.3-apache).
 RUN composer install \
     --no-dev \
     --prefer-dist \
     --no-interaction \
     --no-progress \
     --no-scripts \
+    --ignore-platform-reqs \
     --optimize-autoloader
 
 COPY . .
-RUN composer dump-autoload --optimize \
-    && php artisan package:discover --ansi
+# Optimize the classmap only. Package discovery and framework caches run at
+# runtime (docker/entrypoint.sh) under the correct PHP version.
+RUN composer dump-autoload --optimize --no-dev --no-scripts --ignore-platform-reqs
 
 FROM node:22-alpine AS assets
 
@@ -28,6 +34,10 @@ COPY vite.config.js postcss.config.js tailwind.config.js ./
 COPY resources ./resources
 COPY public ./public
 COPY bootstrap ./bootstrap
+
+# app.js / ssr.js import ZiggyVue from the Composer package, so the ziggy
+# vendor dir must be present when Vite bundles the frontend.
+COPY --from=vendor /app/vendor/tightenco/ziggy ./vendor/tightenco/ziggy
 
 RUN npm run build
 
