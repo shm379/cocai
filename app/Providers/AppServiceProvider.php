@@ -20,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production') || str_starts_with((string) config('app.url'), 'https://') || request()->header('x-forwarded-proto') === 'https') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Vite::prefetch(concurrency: 3);
     }
 }

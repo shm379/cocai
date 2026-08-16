@@ -7,7 +7,7 @@ x-app-environment: &app-environment
   APP_ENV: ${APP_ENV:-production}
   APP_KEY: ${APP_KEY:-}
   APP_DEBUG: ${APP_DEBUG:-false}
-  APP_URL: ${APP_URL:-http://localhost}
+  APP_URL: ${APP_URL:-https://cocai.nabuxai.com}
   APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
   LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
   LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -79,7 +79,7 @@ services:
       MYSQL_DATABASE: ${DB_DATABASE:-cocai}
       MYSQL_USER: ${DB_USERNAME:-cocai}
       MYSQL_PASSWORD: ${SERVICE_PASSWORD_DB:-${DB_PASSWORD:-cocai_db_pass}}
-      MYSQL_ROOT_PASSWORD: ${SERVICE_PASSWORD_DB_ROOT:-${SERVICE_PASSWORD_ROOT:-${SERVICE_PASSWORD_DB:-${DB_ROOT_PASSWORD:-cocai_db_pass}}}}
+      MYSQL_ROOT_PASSWORD: ${SERVICE_PASSWORD_DB_ROOT:-${DB_ROOT_PASSWORD:-cocai_root_pass}}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
