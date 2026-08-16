@@ -24,12 +24,33 @@
 
             <!-- نوار تب‌ها -->
 
-            <!-- تب ۱: پروفایل (Summary + تقویم) -->
+            <!-- تب ۱: پروفایل (Summary + تقویم + تحلیل‌های هوشمند) -->
             <div v-if="activeTab === 'profile'">
                 <ProfileSummary :gameProfile="gameProfile" />
                 <ProgressSummary :analysis="analysis" />
+                <WarReadinessCard
+                    v-if="analysis.war_readiness"
+                    :warReadiness="analysis.war_readiness"
+                    :warStars="gameProfile.warStars || 0"
+                    :warRatingFa="analysis.clan_activity?.war_rating_fa || ''"
+                />
+                <FarmingAdvisorCard
+                    v-if="analysis.farming"
+                    :farming="analysis.farming"
+                    :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
+                    :currentTrophies="gameProfile.trophies || 0"
+                />
+                <HeroEquipmentSection
+                    v-if="analysis.equipment"
+                    :equipment="analysis.equipment"
+                />
+                <BuilderBaseProgressCard
+                    v-if="analysis.builder_base"
+                    :builderBase="analysis.builder_base"
+                />
                 <QuickActions
                     :has-profile="!!user.game_profile"
+                    @openCompare="showCompareModal = true"
                 />
                 <CalendarAndTask
                     :calendar="calendar"
@@ -123,6 +144,13 @@
             v-if="showCountdown"
             :countdown="countdown"
         />
+
+        <!-- مودال مقایسه بازیکن -->
+        <PlayerComparisonModal
+            :show="showCompareModal"
+            :myData="gameProfile"
+            @close="showCompareModal = false"
+        />
     </div>
 </template>
 
@@ -138,6 +166,11 @@ import LoadingOverlay from "@/Components/Dashboard/LoadingOverlay.vue"
 /* تب‌های سفارشی */
 import ProfileSummary from "@/Components/Dashboard/ProfileSummary.vue"
 import ProgressSummary from "@/Components/Dashboard/ProgressSummary.vue"
+import WarReadinessCard from "@/Components/Dashboard/WarReadinessCard.vue"
+import FarmingAdvisorCard from "@/Components/Dashboard/FarmingAdvisorCard.vue"
+import HeroEquipmentSection from "@/Components/Dashboard/HeroEquipmentSection.vue"
+import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
+import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
 import QuickActions from "@/Components/Dashboard/QuickActions.vue"
 import TroopsSection from "@/Components/Dashboard/TroopsSection.vue"
 import AchievementsList from "@/Components/Dashboard/AchievementsList.vue"
@@ -191,6 +224,11 @@ export default {
 
         ProfileSummary,
         ProgressSummary,
+        WarReadinessCard,
+        FarmingAdvisorCard,
+        HeroEquipmentSection,
+        BuilderBaseProgressCard,
+        PlayerComparisonModal,
         QuickActions,
         TroopsSection,
         AchievementsList,
@@ -204,6 +242,7 @@ export default {
             saving: false,
             loading: false,
             activeTab: 'profile',
+            showCompareModal: false,
             favoriteMaps: {
                 data: [],
                 current_page: 1,

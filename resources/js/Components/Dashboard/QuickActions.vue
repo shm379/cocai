@@ -31,6 +31,15 @@
             </button>
 
             <button
+                @click="$emit('openCompare')"
+                :disabled="!hasProfile"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg shadow transition flex items-center gap-2"
+            >
+                <span>📊</span>
+                <span>مقایسه بازیکن</span>
+            </button>
+
+            <button
                 @click="refreshProfile"
                 :disabled="refreshing || !hasProfile"
                 class="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg shadow transition flex items-center gap-2"

@@ -77,6 +77,21 @@ class GameDataService
         return $byTh[$key] ?? ['war' => [], 'farm' => []];
     }
 
+    public function equipment(): array
+    {
+        return $this->units()['equipment'] ?? [];
+    }
+
+    public function equipmentMeta(string $heroName, string $equipmentName): ?array
+    {
+        return $this->units()['equipment'][$heroName][$equipmentName] ?? null;
+    }
+
+    public function equipmentForHero(string $heroName): array
+    {
+        return $this->units()['equipment'][$heroName] ?? [];
+    }
+
     /**
      * نام یونیت‌ها/طلسم‌هایی که در ارتش‌های جنگی TH بازیکن استفاده می‌شوند —
      * این‌ها اولویت اول لَب هستند.

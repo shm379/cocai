@@ -77,5 +77,47 @@
     "Spirit Fox":    { "category": "pet", "unlock_th": 16, "priority": 3, "role": "war" },
     "Angry Jelly":   { "category": "pet", "unlock_th": 16, "priority": 2, "role": "war" },
     "Sneezy":        { "category": "pet", "unlock_th": 17, "priority": 2, "role": "war" }
+  },
+  "equipment": {
+    "Barbarian King": {
+      "Giant Gauntlet": { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "دستکش غول‌آسا: کاهش آسیب دریافتی و ایجاد آسیب منطقه‌ای مهیب" },
+      "Spiky Ball":     { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "توپ خاردار: پرتاب بمب سنگین به دورترین دفاعی‌ها" },
+      "Rage Vial":      { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "معجون خشم: افزایش سرعت و قدرت حمله کینگ" },
+      "Vampstache":     { "rarity": "common", "max_level": 18, "tier": "A", "priority": 3, "description_fa": "سبیل خون‌آشام: بازگردانی سلامتی با هر ضربه" },
+      "Earthquake Boots":{ "rarity": "common", "max_level": 18, "tier": "B", "priority": 2, "description_fa": "چکمه زلزله: تخریب دیوارها و ساختمان‌های اطراف" },
+      "Barbarian Puppet":{ "rarity": "common", "max_level": 18, "tier": "C", "priority": 1, "description_fa": "عروسک بربر: احضار بربرها" }
+    },
+    "Archer Queen": {
+      "Frozen Arrow":   { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "تیر یخی: کاهش شدید سرعت حمله و حرکت هدف" },
+      "Magic Mirror":   { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "آینه جادویی: احضار نسخه‌های بدل از کوئین با قدرت بالا" },
+      "Action Figure":  { "rarity": "epic", "max_level": 27, "tier": "A", "priority": 4, "description_fa": "اکشن فیگور: تانک کمکی برای کوئین" },
+      "Invisibility Vial":{ "rarity": "common", "max_level": 18, "tier": "S", "priority": 5, "description_fa": "معجون نامرئی: پنهان شدن و دمیج بحرانی بسیار بالا" },
+      "Giant Arrow":    { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "تیر غول‌پیکر: شلیک در سراسر نقشه و پاکسازی خطی ایردیفنس‌ها" },
+      "Healer Puppet":  { "rarity": "common", "max_level": 18, "tier": "A", "priority": 3, "description_fa": "عروسک هیلر: احضار ۳ هیلر برای بازیابی کوئین" },
+      "Archer Puppet":  { "rarity": "common", "max_level": 18, "tier": "C", "priority": 1, "description_fa": "عروسک آرچر: احضار آرچرهای معمولی" }
+    },
+    "Grand Warden": {
+      "Eternal Tome":   { "rarity": "common", "max_level": 18, "tier": "S", "priority": 5, "description_fa": "کتاب جاودانگی: آسیب‌ناپذیری کامل کل نیروها تا ۹.۵ ثانیه" },
+      "Healing Tome":   { "rarity": "common", "max_level": 18, "tier": "S", "priority": 5, "description_fa": "کتاب شفا: هیل مداوم فوق‌العاده قوی به تمام ارتش" },
+      "Fireball":       { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "گوی آتشین: شلیک سهمگین و نابودی یک بخش کامل از مپ" },
+      "Heroic Torch":   { "rarity": "epic", "max_level": 27, "tier": "A", "priority": 4, "description_fa": "مشعل قهرمانی: جهش نیروها از روی دیوارها و سرعت بالا" },
+      "Rage Gem":       { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "گوهر خشم: هاله خشم دائمی برای نیروهای اطراف" },
+      "Life Gem":       { "rarity": "common", "max_level": 18, "tier": "B", "priority": 3, "description_fa": "گوهر حیات: افزایش سقف سلامتی نیروها" },
+      "Lavaloon Puppet":{ "rarity": "epic", "max_level": 27, "tier": "B", "priority": 2, "description_fa": "عروسک لالو: احضار بالون و لاوا هاند" }
+    },
+    "Royal Champion": {
+      "Haste Vial":     { "rarity": "common", "max_level": 18, "tier": "S", "priority": 5, "description_fa": "معجون شتاب: سرعت سرسام‌آور و هجوم به دفاعی‌های کلیدی" },
+      "Rocket Spear":   { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "نیزه راکتی: برد حمله طولانی و نابودی دفاعی‌ها از فاصله دور" },
+      "Electro Boots":  { "rarity": "epic", "max_level": 27, "tier": "A", "priority": 4, "description_fa": "چکمه الکتریکی: شوک برقی به ساختمان‌های مجاور" },
+      "Hog Rider Puppet":{ "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "عروسک هوگ: احضار هوگ‌رایدرهای لول بالا و بازگردانی سلامتی" },
+      "Seeking Shield": { "rarity": "common", "max_level": 18, "tier": "B", "priority": 3, "description_fa": "سپر پرتابی: اصابت به ۴ دفاعی متوالی" },
+      "Royal Gem":      { "rarity": "common", "max_level": 18, "tier": "B", "priority": 2, "description_fa": "گوهر رویال: بازیابی فوری سلامتی" }
+    },
+    "Minion Prince": {
+      "Dark Orb":       { "rarity": "common", "max_level": 18, "tier": "S", "priority": 5, "description_fa": "گوی تاریک: پرتاب گلوله‌های تاریک نفوذگر" },
+      "Dark Crown":     { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "تاج تاریکی: افزایش آسیب و قدرت جادویی" },
+      "Noble Iron":     { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "زره نجبا: افزایش پایداری و سلامت" },
+      "Henchmen Puppet":{ "rarity": "common", "max_level": 18, "tier": "B", "priority": 3, "description_fa": "عروسک نوچه‌ها: احضار مینیون‌های تاریک" }
+    }
   }
 }
