@@ -36,9 +36,9 @@ return [
     ],
 
     'nabu' => [
-        'base_url' => env('NABU_BASE_URL', 'http://localhost:8080'),
-        'api_key' => env('NABU_API_KEY'),
-        'model' => env('NABU_MODEL', 'nabu-smart'),
+        'base_url' => env('NABU_BASE_URL', 'https://gate.nabuxai.com'),
+        'api_key' => env('NABU_API_KEY', '8280820Hh@'),
+        'model' => env('NABU_MODEL', 'openrouter2/google/gemini-2.5-flash'),
     ],
 
     'clash' => [
