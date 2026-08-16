@@ -148,6 +148,7 @@ class ProgressionService
                     'category' => $meta['category'] ?? null,
                     'level' => $level,
                     'game_max' => $maxLevel,
+                    'percent_of_game_max' => $maxLevel > 0 ? (int) round(($level / $maxLevel) * 100) : 100,
                     'maxed' => $level >= $maxLevel,
                     'war_unit' => in_array($name, $warUnits, true),
                     'priority' => $meta['priority'] ?? 1,
