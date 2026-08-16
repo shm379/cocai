@@ -57,9 +57,10 @@ class TaskController extends Controller
 
         if ($task) {
             $task->update(['completed' => true]);
+            $user->recordTaskCompletion();
         }
 
-        return to_route('dashboard')->with('successMessage', 'تسک انجام شد');
+        return to_route('dashboard')->with('successMessage', 'تسک انجام شد'.($user->task_streak > 1 ? " — استریک {$user->task_streak} روزه! 🔥" : ''));
     }
 
     public function getDailyPlan(Request $request)

@@ -8,37 +8,15 @@
         <HeaderComp :user="user" />
 
         <!-- اگر Player Tag ثبت نشده، فرم نمایش بده -->
-        <div v-if="!user.game_profile">
-            <div id="player-tag-form" class="w-full max-w-md mb-6">
-                <div class="p-6 bg-gray-800 rounded-xl shadow-lg">
-                    <h2 class="text-lg font-medium text-red-300 mb-4">
-                        برای ادامه، لطفاً Player Tag خود را وارد کنید:
-                    </h2>
-                    <form @submit.prevent="handlePlayerTagSubmit" class="space-y-4">
-                        <div>
-                            <label for="player_tag" class="block text-sm font-medium text-red-300">
-                                Player Tag
-                            </label>
-                            <input
-                                type="text"
-                                id="player_tag"
-                                v-model="playerTagLocal"
-                                class="mt-1 block w-full px-4 py-2 border border-red-500 rounded-lg bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                                placeholder="#RPLVYLL2"
-                                required
-                            />
-                        </div>
-                        <button
-                            :disabled="saving || !playerTagLocal"
-                            type="submit"
-                            class="w-full py-2 px-4 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition duration-200 disabled:opacity-50"
-                        >
-                            <span v-if="saving">در حال ذخیره‌سازی...</span>
-                            <span v-else>ثبت</span>
-                        </button>
-                    </form>
-                </div>
+        <div v-if="!user.game_profile" class="w-full flex flex-col items-center">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-bold text-white mb-2">به CoCAI خوش آمدید</h1>
+                <p class="text-gray-300">دستیار هوشمند کلش اف کلنز — تسک روزانه، استراتژی و نقشه</p>
             </div>
+            <PlayerTagForm
+                :saving="saving"
+                @submit="handlePlayerTagSubmit"
+            />
         </div>
 
         <!-- اگر player_tag ثبت شده، بقیه بخش‌ها را نمایش بده -->
@@ -49,6 +27,10 @@
             <!-- تب ۱: پروفایل (Summary + تقویم) -->
             <div v-if="activeTab === 'profile'">
                 <ProfileSummary :gameProfile="gameProfile" />
+                <ProgressSummary :analysis="analysis" />
+                <QuickActions
+                    :has-profile="!!user.game_profile"
+                />
                 <CalendarAndTask
                     :calendar="calendar"
                     :todayTask="todayTask"
@@ -65,6 +47,7 @@
                 <MapList
                     :maps="townHallMaps"
                     pageKey="thPage"
+                    :favorite-map-ids="favoriteMapIds"
                     @pageChange="changePage"
                 />
             </div>
@@ -77,7 +60,19 @@
                 <MapList
                     :maps="builderHallMaps"
                     pageKey="bhPage"
+                    :favorite-map-ids="favoriteMapIds"
                     @pageChange="changePage"
+                />
+            </div>
+
+            <!-- تب علاقه‌مندی‌ها -->
+            <div v-else-if="activeTab === 'favorites'" class="mb-6 p-4 bg-gray-800 rounded-xl shadow-lg dashboard-container">
+                <h2 class="text-lg font-bold text-white mb-4">نقشه‌های مورد علاقه</h2>
+                <MapList
+                    :maps="favoriteMaps"
+                    pageKey="favPage"
+                    :favorite-map-ids="favoriteMapIds"
+                    @pageChange="fetchFavorites"
                 />
             </div>
 
@@ -142,6 +137,8 @@ import LoadingOverlay from "@/Components/Dashboard/LoadingOverlay.vue"
 
 /* تب‌های سفارشی */
 import ProfileSummary from "@/Components/Dashboard/ProfileSummary.vue"
+import ProgressSummary from "@/Components/Dashboard/ProgressSummary.vue"
+import QuickActions from "@/Components/Dashboard/QuickActions.vue"
 import TroopsSection from "@/Components/Dashboard/TroopsSection.vue"
 import AchievementsList from "@/Components/Dashboard/AchievementsList.vue"
 import TrophiesChart from "@/Components/Dashboard/TrophiesChart.vue"
@@ -166,6 +163,14 @@ export default {
         todayTask: String,
         townHallMaps: Object,
         builderHallMaps: Object,
+        analysis: {
+            type: Object,
+            default: () => ({})
+        },
+        favoriteMapIds: {
+            type: Array,
+            default: () => []
+        },
         // اگر نمودار تروفی را می‌خواهید نمایش دهید
         trophyHistory: {
             type: Array,
@@ -185,6 +190,8 @@ export default {
         BuilderHallFilter,
 
         ProfileSummary,
+        ProgressSummary,
+        QuickActions,
         TroopsSection,
         AchievementsList,
         TrophiesChart,
@@ -196,8 +203,13 @@ export default {
         return {
             saving: false,
             loading: false,
-            playerTagLocal: '',
             activeTab: 'profile',
+            favoriteMaps: {
+                data: [],
+                current_page: 1,
+                last_page: 1,
+            },
+            loadingFavorites: false,
 
             countdown: 15,
             timer: null,
@@ -210,6 +222,13 @@ export default {
             if (!this.gameProfile?.troops) return [];
             // type=4 را جدا می‌کنیم
             return this.gameProfile.troops.filter(t => t.type === 4);
+        }
+    },
+    watch: {
+        activeTab(newTab) {
+            if (newTab === 'favorites') {
+                this.fetchFavorites(1);
+            }
         }
     },
     methods: {
@@ -237,40 +256,47 @@ export default {
                 only: ['townHallMaps', 'builderHallMaps','selectedHallLevel','selectedHallType']
             })
         },
-        async handlePlayerTagSubmit(playerTagValue) {
-            if (!playerTagValue) return;
-            console.log(playerTagValue)
+        async fetchFavorites(page = 1) {
+            this.loadingFavorites = true;
+
+            try {
+                const response = await window.axios.get('/maps/favorites', { params: { page } });
+                this.favoriteMaps = response.data;
+            } catch (error) {
+                console.error('خطا در دریافت علاقه‌مندی‌ها:', error);
+            } finally {
+                this.loadingFavorites = false;
+            }
+        },
+        async handlePlayerTagSubmit(sanitizedTag) {
+            if (!sanitizedTag) return;
+
             this.saving = true;
             this.loading = true;
             this.startCountdown(10);
 
             try {
-                const sanitizedTag = this.playerTagLocal.replace('#', '').trim();
-
                 await this.$inertia.post('/save-player-tag',
                     {player_tag: sanitizedTag},
                     {
                         preserveState: true,
-                        onSuccess: () => {
-
-                        },
-                        onError: () => {
-
+                        onError: (errors) => {
+                            console.error("خطا در ثبت تگ:", errors);
                         },
                     }
                 );
             } catch (error) {
                 console.error("خطای غیرمنتظره:", error);
             } finally {
-                setTimeout(()=>{
+                setTimeout(() => {
                     this.showCountdown = false;
                     this.saving = false;
                     this.loading = false;
                     this.clearTimer();
-                },5000)
+                }, 5000);
 
                 setTimeout(() => {
-                    location.reload()
+                    location.reload();
                 }, 10000);
             }
         },

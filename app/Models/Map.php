@@ -42,4 +42,9 @@ class Map extends Model
     {
         return $this->belongsToMany(Topic::class, 'map_topic', 'map_id', 'topic_id');
     }
+
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'map_favorites')->withTimestamps();
+    }
 }

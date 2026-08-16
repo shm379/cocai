@@ -21,6 +21,31 @@ class UserController extends Controller
     }
 
     /**
+     * پیش‌نمایش سریع تگ بازیکن قبل از ذخیره.
+     */
+    public function previewPlayerTag(Request $request)
+    {
+        $request->validate([
+            'player_tag' => ['required', 'string', 'max:15', 'regex:/^#?[0-9A-Za-z]{5,12}$/'],
+        ]);
+
+        try {
+            $data = $this->clashOfClansService->getPlayerData($request->player_tag);
+
+            return response()->json([
+                'name' => $data['name'] ?? null,
+                'town_hall' => $data['townHallLevel'] ?? null,
+                'trophies' => $data['trophies'] ?? null,
+                'exp_level' => $data['expLevel'] ?? null,
+                'clan' => $data['clan']['name'] ?? null,
+                'tag' => $data['tag'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
      * ثبت تگ بازیکن: دریافت دادهٔ بازی، ذخیرهٔ پروفایل + لاگ تروفی،
      * و ساخت تقویم قطعی در پس‌زمینه.
      */
@@ -75,14 +100,16 @@ class UserController extends Controller
 
         if ($task) {
             $task->update(['completed' => true]);
+            $user->recordTaskCompletion();
 
             $newTask = $this->chatbotService->generateNewTask($user);
 
             Task::create(['user_id' => $user->id, 'task' => $newTask]);
 
             return response()->json([
-                'message' => 'تسک با موفقیت انجام شد!',
+                'message' => 'تسک با موفقیت انجام شد!'.($user->task_streak > 1 ? " — استریک {$user->task_streak} روزه! 🔥" : ''),
                 'todayTask' => $newTask,
+                'streak' => $user->task_streak,
             ]);
         }
 

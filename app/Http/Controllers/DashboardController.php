@@ -4,11 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Map;
 use App\Models\Topic;
+use App\Services\ProgressionService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    public function __construct(private ProgressionService $progression)
+    {
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -164,6 +169,12 @@ class DashboardController extends Controller
                 })
             : collect();
 
+        $analysis = $user->gameProfile
+            ? $this->progression->analyze($gameProfile)
+            : ['ok' => false, 'reason' => 'no_profile'];
+
+        $favoriteMapIds = $user->favoriteMaps()->pluck('maps.id')->all();
+
         return Inertia::render('Dashboard', [
             'user' => $user,
             'gameProfile' => $gameProfile,
@@ -179,6 +190,8 @@ class DashboardController extends Controller
             'selectedHallType' => $hallType,
             'selectedHallLevel' => (int) $hallLevel,
             'trophyHistory' => $trophyHistory,
+            'analysis' => $analysis,
+            'favoriteMapIds' => $favoriteMapIds,
         ]);
     }
 }

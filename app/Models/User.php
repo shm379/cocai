@@ -22,7 +22,9 @@ class User extends Authenticatable
         'email',
         'mobile',
         'password',
-        'player_tag'
+        'player_tag',
+        'task_streak',
+        'task_last_completed_at',
     ];
 
     /**
@@ -46,6 +48,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'mobile_verified_at' => 'datetime',
             'password' => 'hashed',
+            'task_last_completed_at' => 'datetime',
         ];
     }
 
@@ -92,4 +95,30 @@ class User extends Authenticatable
         return $this->hasMany(Calendar::class);
     }
 
+    public function favoriteMaps()
+    {
+        return $this->belongsToMany(Map::class, 'map_favorites')->withTimestamps();
+    }
+
+    /**
+     * Increment task completion streak based on calendar days.
+     * Resets if last completion was before yesterday.
+     */
+    public function recordTaskCompletion(): void
+    {
+        $last = $this->task_last_completed_at;
+
+        if ($last === null) {
+            $this->task_streak = 1;
+        } elseif ($last->isYesterday()) {
+            $this->task_streak += 1;
+        } elseif ($last->isToday()) {
+            // Already counted today; do nothing.
+        } else {
+            $this->task_streak = 1;
+        }
+
+        $this->task_last_completed_at = now();
+        $this->save();
+    }
 }

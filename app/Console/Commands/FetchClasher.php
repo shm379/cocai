@@ -28,6 +28,22 @@ class FetchClasher extends Command
         return $topicName;
     }
 
+    /**
+     * استخراج نوع هال (0=town, 1=builder) و سطح آن از کلید اندپوینت.
+     */
+    private function parseHallFromKey($key): ?array
+    {
+        if (preg_match('/town_hall_(\d+)/', $key, $matches)) {
+            return ['type' => 0, 'level' => (int) $matches[1]];
+        }
+
+        if (preg_match('/builder_hall_(\d+)/', $key, $matches)) {
+            return ['type' => 1, 'level' => (int) $matches[1]];
+        }
+
+        return null;
+    }
+
     private function convertAgoToDate($agoString)
     {
         try {
@@ -203,7 +219,23 @@ class FetchClasher extends Command
 
                     // **گرفتن `Topic` از لینک API**
                     $topicName = $this->extractTopicFromUrl($key);
-                    $topic = Topic::firstOrCreate(['name' => $topicName]);
+                    $hall = $this->parseHallFromKey($key);
+
+                    $topicPayload = ['name' => $topicName];
+                    if ($hall !== null) {
+                        $topicPayload['hall_type'] = $hall['type'];
+                        $topicPayload['hall_level'] = $hall['level'];
+                    }
+
+                    $topic = Topic::firstOrCreate(
+                        ['name' => $topicName],
+                        $topicPayload
+                    );
+
+                    // اگر رکورد قبلاً بدون hall_type/level ساخته شده، آپدیت کن
+                    if ($hall !== null && (is_null($topic->hall_type) || is_null($topic->hall_level))) {
+                        $topic->update($topicPayload);
+                    }
 
                     // **اتصال فقط اگر قبلاً متصل نشده باشد**
                     if (!$map->topics()->where('topics.id', $topic->id)->exists()) {

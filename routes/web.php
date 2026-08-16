@@ -90,6 +90,14 @@ Route::post('/save-player-tag', [UserController::class, 'savePlayerTag'])->middl
 Route::post('/profile/refresh', [UserController::class, 'refreshProfile'])
     ->middleware(['auth', 'throttle:6,1'])->name('profile.refresh');
 
+// پیش‌نمایش تگ بازیکن قبل از ثبت (فقط نام/کاپ/تاون‌هال)
+Route::get('/api/player-preview', [UserController::class, 'previewPlayerTag'])
+    ->middleware(['auth', 'throttle:10,1'])->name('player.preview');
+
+// مقایسهٔ پیشرفت با یک بازیکن دیگر
+Route::get('/api/compare-progress', [UserController::class, 'compareProgress'])
+    ->middleware(['auth', 'throttle:10,1'])->name('player.compare');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -99,5 +107,11 @@ Route::middleware('auth')->group(function () {
 // کراول نقشه‌ها — عملیات سنگین و حالت‌گردان؛ فقط برای کاربر احراز هویت‌شده.
 // TODO: بهتر است به یک کامند Artisan یا میدلور admin محدود شود.
 Route::get('/map', [MapController::class, 'crawlMaps'])->middleware('auth')->name('map.crawl');
+
+// علاقه‌مندی‌های نقشه
+Route::middleware('auth')->group(function () {
+    Route::post('/maps/{map}/favorite', [MapController::class, 'toggleFavorite'])->name('maps.favorite');
+    Route::get('/maps/favorites', [MapController::class, 'favorites'])->name('maps.favorites');
+});
 
 require __DIR__.'/auth.php';
