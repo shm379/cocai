@@ -42,7 +42,7 @@ return [
     ],
 
     'clash' => [
-        'api_base' => env('CLASH_API_BASE'),
+        'api_base' => env('CLASH_API_BASE', 'https://api.clashofclans.com/v1/players/%23'),
         'api_token' => env('CLASH_API_TOKEN'),
     ],
 
