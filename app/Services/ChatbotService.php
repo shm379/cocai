@@ -77,13 +77,20 @@ PROMPT;
      * Core call to the NabuGate chat-completions endpoint.
      * یک بار retry برای خطاهای گذرا؛ '' فقط وقتی هر دو تلاش شکست بخورد.
      */
-    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 1500): string
+    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 500): string
     {
         if (empty($this->baseUrl)) {
             Log::error('NabuGate base_url is not configured (services.nabu.base_url).');
 
             return '';
         }
+
+        $cleanMessages = array_map(function ($msg) {
+            return [
+                'role' => $msg['role'] ?? 'user',
+                'content' => mb_convert_encoding((string) ($msg['content'] ?? ''), 'UTF-8', 'UTF-8'),
+            ];
+        }, $messages);
 
         foreach ([1, 2] as $attempt) {
             try {
@@ -93,7 +100,7 @@ PROMPT;
                     ->acceptJson()
                     ->post(rtrim($this->baseUrl, '/').'/v1/chat/completions', [
                         'model' => $this->model,
-                        'messages' => $messages,
+                        'messages' => $cleanMessages,
                         'temperature' => $temperature,
                         'max_tokens' => $maxTokens,
                     ]);

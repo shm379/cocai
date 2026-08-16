@@ -30,8 +30,8 @@ x-app-environment: &app-environment
   MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-hello@example.com}
   MAIL_FROM_NAME: ${MAIL_FROM_NAME:-cocai}
   CLASH_API_BASE: ${CLASH_API_BASE:-}
-  NABU_BASE_URL: ${NABU_BASE_URL:-http://localhost:8080}
-  NABU_API_KEY: ${NABU_API_KEY:-}
+  NABU_BASE_URL: ${NABU_BASE_URL:-https://gate.nabuxai.com}
+  NABU_API_KEY: ${NABU_API_KEY:-8280820Hh@}
   NABU_MODEL: ${NABU_MODEL:-nabu-smart}
   RUN_STORAGE_LINK: ${RUN_STORAGE_LINK:-true}
 
