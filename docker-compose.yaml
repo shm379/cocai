@@ -5,7 +5,7 @@ x-app-build: &app-build
 x-app-environment: &app-environment
   APP_NAME: ${APP_NAME:-cocai}
   APP_ENV: ${APP_ENV:-production}
-  APP_KEY: ${APP_KEY:?APP_KEY is required}
+  APP_KEY: ${APP_KEY:-}
   APP_DEBUG: ${APP_DEBUG:-false}
   APP_URL: ${APP_URL:-http://localhost}
   APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
@@ -16,7 +16,7 @@ x-app-environment: &app-environment
   DB_PORT: 3306
   DB_DATABASE: ${DB_DATABASE:-cocai}
   DB_USERNAME: ${DB_USERNAME:-cocai}
-  DB_PASSWORD: ${SERVICE_PASSWORD_DB}
+  DB_PASSWORD: ${SERVICE_PASSWORD_DB:-${DB_PASSWORD:-cocai_db_pass}}
   SESSION_DRIVER: ${SESSION_DRIVER:-database}
   SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
   CACHE_STORE: ${CACHE_STORE:-database}
@@ -50,7 +50,7 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/up >/dev/null || curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -78,12 +78,12 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-cocai}
       MYSQL_USER: ${DB_USERNAME:-cocai}
-      MYSQL_PASSWORD: ${SERVICE_PASSWORD_DB}
-      MYSQL_ROOT_PASSWORD: ${SERVICE_PASSWORD_DB_ROOT}
+      MYSQL_PASSWORD: ${SERVICE_PASSWORD_DB:-${DB_PASSWORD:-cocai_db_pass}}
+      MYSQL_ROOT_PASSWORD: ${SERVICE_PASSWORD_DB_ROOT:-${SERVICE_PASSWORD_ROOT:-${SERVICE_PASSWORD_DB:-${DB_ROOT_PASSWORD:-cocai_db_pass}}}}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} --password=$${MYSQL_PASSWORD} --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
