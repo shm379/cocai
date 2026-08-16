@@ -105,6 +105,16 @@
       "farm": [
         { "name": "Sneaky Goblin", "name_fa": "گوبلین مخفی", "units": ["Goblin"], "spells": [], "guide_fa": "فارم روزانه؛ هزینه‌های TH17 بالاترین حد بازی است." }
       ]
+    },
+    "18": {
+      "war": [
+        { "name": "Super Yeti Sky Smash", "name_fa": "سوپر یتی اسکای اسمش", "units": ["Super Yeti", "Root Rider", "Sky Wagon", "Druid"], "spells": ["Rage Spell", "Overgrowth Spell", "Freeze Spell", "Revive Spell"], "guide_fa": "استراتژی متای بی‌رقیب تاون‌هال ۱۸؛ ورود اسکای واگن و خروج سوپر یتی‌ها در هسته مپ همراه با احیای هیروها با ریوایو اسپل." },
+        { "name": "Dragon Duke Hydra Charge", "name_fa": "هایدرا چارج دراگون دوک", "units": ["Dragon", "Dragon Rider", "Balloon", "Troop Launcher"], "spells": ["Rage Spell", "Freeze Spell", "Ice Block Spell", "Totem Spell"], "guide_fa": "پوش هوایی فوق سنگین با دراگون دوک و توتم اسپل؛ فریز و قفل کردن تاون‌هال ۱۸ با آیس بلاک اسپل." },
+        { "name": "Ruin Witch Wave", "name_fa": "موج رویین ویچ و تروپ لانچر", "units": ["Ruin Witch", "Meteor Golem", "Troop Launcher", "Druid"], "spells": ["Rage Spell", "Overgrowth Spell", "Bat Spell", "Angry Spell"], "guide_fa": "تانک شدن متئور گولم و پرتاب امواج رویین ویچ توسط تروپ لانچر برای پاکسازی ۳ ستاره." }
+      ],
+      "farm": [
+        { "name": "Super Barch & Sneaky", "name_fa": "سوپر بارچ و اسنیکی", "units": ["Goblin", "Barbarian", "Archer"], "spells": ["Jump Spell", "Invisibility Spell"], "guide_fa": "سریع‌ترین و کم‌هزینه‌ترین ترکیب فارم برای ارتقای دیوارهای TH18 و پر کردن مخازن." }
+      ]
     }
   }
 }

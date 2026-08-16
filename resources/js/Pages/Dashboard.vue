@@ -48,6 +48,9 @@
                     v-if="analysis.builder_base"
                     :builderBase="analysis.builder_base"
                 />
+                <UpgradeTimeCalculator
+                    :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
+                />
                 <QuickActions
                     :has-profile="!!user.game_profile"
                     @openCompare="showCompareModal = true"
@@ -170,6 +173,7 @@ import WarReadinessCard from "@/Components/Dashboard/WarReadinessCard.vue"
 import FarmingAdvisorCard from "@/Components/Dashboard/FarmingAdvisorCard.vue"
 import HeroEquipmentSection from "@/Components/Dashboard/HeroEquipmentSection.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
+import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
 import QuickActions from "@/Components/Dashboard/QuickActions.vue"
 import TroopsSection from "@/Components/Dashboard/TroopsSection.vue"
@@ -228,6 +232,7 @@ export default {
         FarmingAdvisorCard,
         HeroEquipmentSection,
         BuilderBaseProgressCard,
+        UpgradeTimeCalculator,
         PlayerComparisonModal,
         QuickActions,
         TroopsSection,

@@ -1,12 +1,13 @@
 {
-  "data_version": "2025-03-th17",
+  "data_version": "2026-08-th18",
   "notes": "max_by_th فقط برای هیروها نگهداری می‌شود (منبع دقیق). سقف نیروها/طلسم‌ها از فیلد maxLevel خود API خوانده می‌شود تا هیچ عدد حدسی وارد تحلیل نشود. unlock_th و priority دانش استراتژیک است.",
   "heroes": {
-    "Barbarian King": { "unlock_th": 7,  "max_by_th": { "7": 5, "8": 10, "9": 30, "10": 40, "11": 50, "12": 65, "13": 75, "14": 80, "15": 90, "16": 95, "17": 100 } },
-    "Archer Queen":   { "unlock_th": 9,  "max_by_th": { "9": 30, "10": 40, "11": 50, "12": 65, "13": 75, "14": 80, "15": 90, "16": 95, "17": 100 } },
-    "Minion Prince":  { "unlock_th": 9,  "max_by_th": { "9": 10, "10": 20, "11": 30, "12": 40, "13": 50, "14": 60, "15": 70, "16": 80, "17": 90 } },
-    "Grand Warden":   { "unlock_th": 11, "max_by_th": { "11": 20, "12": 40, "13": 50, "14": 55, "15": 65, "16": 70, "17": 75 } },
-    "Royal Champion": { "unlock_th": 13, "max_by_th": { "13": 25, "14": 30, "15": 40, "16": 45, "17": 50 } }
+    "Barbarian King": { "unlock_th": 7,  "max_by_th": { "7": 5, "8": 10, "9": 30, "10": 40, "11": 50, "12": 65, "13": 75, "14": 80, "15": 90, "16": 95, "17": 100, "18": 110 } },
+    "Archer Queen":   { "unlock_th": 9,  "max_by_th": { "9": 30, "10": 40, "11": 50, "12": 65, "13": 75, "14": 80, "15": 90, "16": 95, "17": 100, "18": 110 } },
+    "Minion Prince":  { "unlock_th": 9,  "max_by_th": { "9": 10, "10": 20, "11": 30, "12": 40, "13": 50, "14": 60, "15": 70, "16": 80, "17": 90, "18": 95 } },
+    "Grand Warden":   { "unlock_th": 11, "max_by_th": { "11": 20, "12": 40, "13": 50, "14": 55, "15": 65, "16": 70, "17": 75, "18": 85 } },
+    "Royal Champion": { "unlock_th": 13, "max_by_th": { "13": 25, "14": 30, "15": 40, "16": 45, "17": 50, "18": 55 } },
+    "Dragon Duke":    { "unlock_th": 16, "max_by_th": { "16": 15, "17": 25, "18": 35 } }
   },
   "units": {
     "Barbarian":        { "category": "elixir_troop", "unlock_th": 1,  "priority": 2, "role": "farm" },
@@ -27,6 +28,8 @@
     "Electro Titan":    { "category": "elixir_troop", "unlock_th": 14, "priority": 3, "role": "war" },
     "Root Rider":       { "category": "elixir_troop", "unlock_th": 15, "priority": 5, "role": "war" },
     "Thrower":          { "category": "elixir_troop", "unlock_th": 16, "priority": 3, "role": "war" },
+    "Troop Launcher":   { "category": "elixir_troop", "unlock_th": 17, "priority": 4, "role": "war" },
+    "Sky Wagon":        { "category": "elixir_troop", "unlock_th": 18, "priority": 4, "role": "war" },
 
     "Minion":           { "category": "dark_troop", "unlock_th": 7,  "priority": 2, "role": "farm" },
     "Hog Rider":        { "category": "dark_troop", "unlock_th": 7,  "priority": 4, "role": "war" },
@@ -40,6 +43,8 @@
     "Apprentice Warden":{ "category": "dark_troop", "unlock_th": 13, "priority": 3, "role": "war" },
     "Druid":            { "category": "dark_troop", "unlock_th": 14, "priority": 4, "role": "war" },
     "Furnace":          { "category": "dark_troop", "unlock_th": 15, "priority": 3, "role": "war" },
+    "Ruin Witch":       { "category": "dark_troop", "unlock_th": 16, "priority": 4, "role": "war" },
+    "Meteor Golem":     { "category": "dark_troop", "unlock_th": 17, "priority": 4, "role": "war" },
 
     "Lightning Spell":    { "category": "spell", "unlock_th": 5,  "priority": 4, "role": "war" },
     "Healing Spell":      { "category": "spell", "unlock_th": 6,  "priority": 4, "role": "war" },
@@ -50,6 +55,8 @@
     "Invisibility Spell": { "category": "spell", "unlock_th": 11, "priority": 3, "role": "war" },
     "Recall Spell":       { "category": "spell", "unlock_th": 13, "priority": 3, "role": "war" },
     "Revive Spell":       { "category": "spell", "unlock_th": 15, "priority": 3, "role": "war" },
+    "Ice Block Spell":    { "category": "spell", "unlock_th": 16, "priority": 3, "role": "war" },
+    "Totem Spell":        { "category": "spell", "unlock_th": 17, "priority": 4, "role": "war" },
 
     "Poison Spell":     { "category": "dark_spell", "unlock_th": 8,  "priority": 4, "role": "war" },
     "Earthquake Spell": { "category": "dark_spell", "unlock_th": 8,  "priority": 3, "role": "war" },
@@ -57,6 +64,7 @@
     "Skeleton Spell":   { "category": "dark_spell", "unlock_th": 9,  "priority": 2, "role": "war" },
     "Bat Spell":        { "category": "dark_spell", "unlock_th": 10, "priority": 3, "role": "war" },
     "Overgrowth Spell": { "category": "dark_spell", "unlock_th": 12, "priority": 3, "role": "war" },
+    "Angry Spell":      { "category": "dark_spell", "unlock_th": 17, "priority": 3, "role": "war" },
 
     "Wall Wrecker":    { "category": "siege", "unlock_th": 12, "priority": 3, "role": "war" },
     "Battle Blimp":    { "category": "siege", "unlock_th": 12, "priority": 2, "role": "war" },
@@ -118,6 +126,12 @@
       "Dark Crown":     { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "تاج تاریکی: افزایش آسیب و قدرت جادویی" },
       "Noble Iron":     { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "زره نجبا: افزایش پایداری و سلامت" },
       "Henchmen Puppet":{ "rarity": "common", "max_level": 18, "tier": "B", "priority": 3, "description_fa": "عروسک نوچه‌ها: احضار مینیون‌های تاریک" }
+    },
+    "Dragon Duke": {
+      "Fire Heart":     { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "قلب آتشین: شلیک امواج آتش سوزاننده به پایگاه دشمن" },
+      "Electro Fangs":  { "rarity": "epic", "max_level": 27, "tier": "S", "priority": 5, "description_fa": "نیش الکتریکی: زنجیره صاعقه و فلج کردن دفاعی‌ها" },
+      "Flame Blower":   { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "دمنده شعله: آسیب خطی با شعله متمرکز" },
+      "Stun Blaster":   { "rarity": "common", "max_level": 18, "tier": "A", "priority": 4, "description_fa": "شلیک گیج‌کننده: متوقف کردن هیروها و دفاعی‌ها" }
     }
   }
 }

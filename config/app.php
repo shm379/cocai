@@ -52,9 +52,9 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'https://cocai.nabuxai.com'),
+    'url' => (env('APP_URL') && env('APP_URL') !== 'http://localhost') ? env('APP_URL') : 'https://cocai.nabuxai.com',
 
-    'asset_url' => env('ASSET_URL', env('APP_URL', 'https://cocai.nabuxai.com')),
+    'asset_url' => (env('ASSET_URL') && env('ASSET_URL') !== 'http://localhost') ? env('ASSET_URL') : 'https://cocai.nabuxai.com',
 
     /*
     |--------------------------------------------------------------------------

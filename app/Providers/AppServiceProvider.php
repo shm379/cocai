@@ -21,7 +21,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Support\Facades\URL::forceScheme('https');
-        \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url', 'https://cocai.nabuxai.com'));
+        $rootUrl = config('app.url');
+        if (! $rootUrl || $rootUrl === 'http://localhost') {
+            $rootUrl = 'https://cocai.nabuxai.com';
+        }
+        \Illuminate\Support\Facades\URL::forceRootUrl($rootUrl);
         Vite::prefetch(concurrency: 3);
     }
 }

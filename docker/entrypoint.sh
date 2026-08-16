@@ -21,6 +21,13 @@ if [ -z "${APP_KEY:-}" ] || [ "${APP_KEY}" = "APP_KEY is required" ]; then
   export APP_KEY=$(php artisan key:generate --show --no-interaction)
 fi
 
+if [ -z "${APP_URL:-}" ] || [ "${APP_URL}" = "http://localhost" ]; then
+  export APP_URL="https://cocai.nabuxai.com"
+fi
+if [ -z "${ASSET_URL:-}" ] || [ "${ASSET_URL}" = "http://localhost" ]; then
+  export ASSET_URL="https://cocai.nabuxai.com"
+fi
+
 if [ "${RUN_STORAGE_LINK:-true}" = "true" ]; then
   php artisan storage:link --no-interaction || true
 fi
