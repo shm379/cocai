@@ -77,7 +77,7 @@ PROMPT;
      * Core call to the NabuGate chat-completions endpoint.
      * یک بار retry برای خطاهای گذرا؛ '' فقط وقتی هر دو تلاش شکست بخورد.
      */
-    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 500): string
+    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 800): string
     {
         if (empty($this->baseUrl)) {
             Log::error('NabuGate base_url is not configured (services.nabu.base_url).');

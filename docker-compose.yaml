@@ -32,7 +32,7 @@ x-app-environment: &app-environment
   CLASH_API_BASE: ${CLASH_API_BASE:-}
   NABU_BASE_URL: ${NABU_BASE_URL:-https://gate.nabuxai.com}
   NABU_API_KEY: ${NABU_API_KEY:-8280820Hh@}
-  NABU_MODEL: ${NABU_MODEL:-nabu-smart}
+  NABU_MODEL: ${NABU_MODEL:-openrouter2/google/gemini-2.5-flash}
   RUN_STORAGE_LINK: ${RUN_STORAGE_LINK:-true}
 
 services:
