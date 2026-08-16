@@ -14,8 +14,8 @@ class ClashOfClansService
 
     public function __construct()
     {
-        $this->apiBase = config('services.clash.api_base');
-        $this->apiToken = config('services.clash.api_token');
+        $this->apiBase = config('services.clash.api_base') ?: 'https://api.clashofclans.com/v1/players/%23';
+        $this->apiToken = config('services.clash.api_token') ?: config('services.clash.api_token');
     }
 
     /**
