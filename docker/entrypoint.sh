@@ -10,6 +10,12 @@ mkdir -p \
 
 chown -R www-data:www-data storage bootstrap/cache
 
+if [ -d /etc/apache2 ]; then
+  printf 'SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on\nRemoteIPHeader X-Forwarded-For\nRemoteIPInternalProxy 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 127.0.0.1\n' > /etc/apache2/conf-available/ssl-proxy.conf
+  a2enmod remoteip headers 2>/dev/null || true
+  a2enconf ssl-proxy 2>/dev/null || true
+fi
+
 if [ -z "${APP_KEY:-}" ] || [ "${APP_KEY}" = "APP_KEY is required" ]; then
   echo "APP_KEY is not set or invalid. Generating temporary application key..."
   export APP_KEY=$(php artisan key:generate --show --no-interaction)
