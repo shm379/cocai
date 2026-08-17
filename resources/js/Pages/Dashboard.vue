@@ -81,6 +81,10 @@
                 <UpgradeTimeCalculator
                     :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
                 />
+                <AccountSwitcher
+                    :currentTag="gameProfile?.tag || user.game_profile?.player_tag || ''"
+                    :currentName="gameProfile?.name || ''"
+                />
                 <QuickActions
                     :has-profile="!!user.game_profile"
                     @openCompare="showCompareModal = true"
@@ -226,6 +230,7 @@ import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressC
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
 import QuickActions from "@/Components/Dashboard/QuickActions.vue"
+import AccountSwitcher from "@/Components/Dashboard/AccountSwitcher.vue"
 import TroopsSection from "@/Components/Dashboard/TroopsSection.vue"
 import AchievementsList from "@/Components/Dashboard/AchievementsList.vue"
 import TrophiesChart from "@/Components/Dashboard/TrophiesChart.vue"
@@ -295,6 +300,7 @@ export default {
         UpgradeTimeCalculator,
         PlayerComparisonModal,
         QuickActions,
+        AccountSwitcher,
         TroopsSection,
         AchievementsList,
         TrophiesChart,

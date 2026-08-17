@@ -39,6 +39,14 @@
                 <span>مقایسه بازیکن</span>
             </button>
 
+            <a
+                href="/dashboard/strategy-lab"
+                class="px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white rounded-lg shadow transition flex items-center gap-2"
+            >
+                <span>🧪</span>
+                <span>آزمایشگاه استراتژی (Strategy Lab)</span>
+            </a>
+
             <button
                 @click="refreshProfile"
                 :disabled="refreshing || !hasProfile"
