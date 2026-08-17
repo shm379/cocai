@@ -77,7 +77,10 @@
                 <WarPlannerHub
                     :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
                 />
+                <ArmyLinkGenerator />
+                <HeroPetPlanner />
                 <DefenseMatrixAdvisor />
+                <ClanCapitalPlanner />
                 <BuilderBaseProgressCard
                     v-if="analysis.builder_base"
                     :builderBase="analysis.builder_base"
@@ -232,6 +235,9 @@ import AchievementGemTracker from "@/Components/Dashboard/AchievementGemTracker.
 import MetaArmiesHub from "@/Components/Dashboard/MetaArmiesHub.vue"
 import DefenseMatrixAdvisor from "@/Components/Dashboard/DefenseMatrixAdvisor.vue"
 import WarPlannerHub from "@/Components/Dashboard/WarPlannerHub.vue"
+import HeroPetPlanner from "@/Components/Dashboard/HeroPetPlanner.vue"
+import ClanCapitalPlanner from "@/Components/Dashboard/ClanCapitalPlanner.vue"
+import ArmyLinkGenerator from "@/Components/Dashboard/ArmyLinkGenerator.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
@@ -304,6 +310,9 @@ export default {
         MetaArmiesHub,
         DefenseMatrixAdvisor,
         WarPlannerHub,
+        HeroPetPlanner,
+        ClanCapitalPlanner,
+        ArmyLinkGenerator,
         BuilderBaseProgressCard,
         UpgradeTimeCalculator,
         PlayerComparisonModal,
