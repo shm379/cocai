@@ -1,70 +1,108 @@
 <script setup>
-import Checkbox from '@/Components/Checkbox.vue';
+import { ref } from 'vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-defineProps({
+const props = defineProps({
     canResetPassword: {
         type: Boolean,
+        default: true,
     },
     status: {
         type: String,
     },
+    defaultMode: {
+        type: String,
+        default: 'login',
+    }
 });
 
-const form = useForm({
+const mode = ref(props.defaultMode);
+
+// فرم ورود
+const loginForm = useForm({
     email: '',
     password: '',
     remember: false,
 });
 
-const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+const submitLogin = () => {
+    loginForm.post(route('login'), {
+        onFinish: () => loginForm.reset('password'),
+    });
+};
+
+// فرم ثبت‌نام
+const registerForm = useForm({
+    name: '',
+    email: '',
+    mobile: '',
+    password: '',
+    password_confirmation: '',
+});
+
+const submitRegister = () => {
+    registerForm.post(route('register'), {
+        onFinish: () => registerForm.reset('password', 'password_confirmation'),
     });
 };
 </script>
 
 <template>
     <GuestLayout>
-        <Head title="ورود به حساب کاربری — CoCAI" />
+        <Head :title="mode === 'login' ? 'ورود به حساب کاربری — CoCAI' : 'ثبت‌نام فرمانده جدید — CoCAI'" />
 
-        <div class="mb-6 text-center">
-            <h2 class="text-xl font-bold text-white">ورود به پنل فرماندهی</h2>
-            <p class="text-xs text-gray-400 mt-1">برای مشاهده تحلیل‌ها و برنامه‌ریزی تسک‌ها وارد شوید</p>
+        <!-- تب‌بار سوئیچ یکپارچه میان ورود و ثبت‌نام -->
+        <div class="flex items-center p-1 bg-gray-900/90 rounded-2xl border border-gray-700/80 mb-6 select-none">
+            <button
+                type="button"
+                @click="mode = 'login'"
+                class="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 flex items-center justify-center gap-2"
+                :class="mode === 'login'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-gray-950 shadow-md shadow-amber-500/20'
+                    : 'text-gray-400 hover:text-gray-200'"
+            >
+                <span>🔑</span>
+                <span>ورود به حساب</span>
+            </button>
+            <button
+                type="button"
+                @click="mode = 'register'"
+                class="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 flex items-center justify-center gap-2"
+                :class="mode === 'register'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-gray-950 shadow-md shadow-amber-500/20'
+                    : 'text-gray-400 hover:text-gray-200'"
+            >
+                <span>🛡️</span>
+                <span>ثبت‌نام جدید</span>
+            </button>
         </div>
 
         <div v-if="status" class="mb-4 text-xs font-bold text-emerald-400 bg-emerald-500/20 p-3 rounded-xl border border-emerald-500/30 text-center">
             {{ status }}
         </div>
 
-        <form @submit.prevent="submit" class="space-y-4">
-            <!-- Email -->
+        <!-- ================= ۱) فرم ورود ================= -->
+        <form v-if="mode === 'login'" @submit.prevent="submitLogin" class="space-y-4">
             <div>
-                <label for="email" class="block text-xs font-bold text-gray-300 mb-1.5">ایمیل کاربری</label>
-                <div class="relative">
-                    <input
-                        id="email"
-                        type="email"
-                        class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:font-sans placeholder:text-gray-500"
-                        v-model="form.email"
-                        required
-                        autofocus
-                        autocomplete="username"
-                        placeholder="example@mail.com"
-                    />
-                </div>
-                <InputError class="mt-1.5 text-xs text-red-400" :message="form.errors.email" />
+                <label for="login-email" class="block text-xs font-bold text-gray-300 mb-1.5">ایمیل کاربری</label>
+                <input
+                    id="login-email"
+                    type="email"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:font-sans placeholder:text-gray-500"
+                    v-model="loginForm.email"
+                    required
+                    autofocus
+                    autocomplete="username"
+                    placeholder="example@mail.com"
+                />
+                <InputError class="mt-1.5 text-xs text-red-400" :message="loginForm.errors.email" />
             </div>
 
-            <!-- Password -->
             <div>
                 <div class="flex items-center justify-between mb-1.5">
-                    <label for="password" class="block text-xs font-bold text-gray-300">رمز عبور</label>
+                    <label for="login-password" class="block text-xs font-bold text-gray-300">رمز عبور</label>
                     <Link
                         v-if="canResetPassword"
                         :href="route('password.request')"
@@ -73,53 +111,123 @@ const submit = () => {
                         فراموشی رمز عبور؟
                     </Link>
                 </div>
-                <div class="relative">
-                    <input
-                        id="password"
-                        type="password"
-                        class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition placeholder:text-gray-500"
-                        v-model="form.password"
-                        required
-                        autocomplete="current-password"
-                        placeholder="••••••••"
-                    />
-                </div>
-                <InputError class="mt-1.5 text-xs text-red-400" :message="form.errors.password" />
+                <input
+                    id="login-password"
+                    type="password"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition placeholder:text-gray-500"
+                    v-model="loginForm.password"
+                    required
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                />
+                <InputError class="mt-1.5 text-xs text-red-400" :message="loginForm.errors.password" />
             </div>
 
-            <!-- Remember me -->
             <div class="flex items-center justify-between pt-1">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input
                         type="checkbox"
-                        v-model="form.remember"
+                        v-model="loginForm.remember"
                         class="w-4 h-4 rounded bg-gray-900 border-gray-700 text-amber-500 focus:ring-amber-500 focus:ring-offset-gray-900"
                     />
                     <span class="text-xs text-gray-400">مرا به خاطر بسپار</span>
                 </label>
             </div>
 
-            <!-- Submit Button -->
             <div class="pt-2">
                 <button
                     type="submit"
                     class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-gray-950 font-black text-sm shadow-lg shadow-amber-500/25 transition duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    :disabled="form.processing"
+                    :disabled="loginForm.processing"
                 >
-                    <span v-if="form.processing">در حال احراز هویت...</span>
+                    <span v-if="loginForm.processing">در حال احراز هویت...</span>
                     <span v-else>🚀 ورود به حساب کاربری</span>
                 </button>
             </div>
+        </form>
 
-            <!-- Switch to Register -->
-            <div class="pt-4 mt-4 border-t border-gray-700/60 text-center text-xs text-gray-400">
-                <span>هنوز حساب کاربری نساخته‌اید؟</span>
-                <Link
-                    :href="route('register')"
-                    class="text-amber-400 font-bold hover:text-amber-300 mr-1.5 underline underline-offset-4"
+        <!-- ================= ۲) فرم ثبت‌نام ================= -->
+        <form v-else @submit.prevent="submitRegister" class="space-y-3.5">
+            <div>
+                <label for="reg-name" class="block text-xs font-bold text-gray-300 mb-1">نام یا لقب درون بازی</label>
+                <input
+                    id="reg-name"
+                    type="text"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition placeholder:text-gray-500"
+                    v-model="registerForm.name"
+                    required
+                    autofocus
+                    autocomplete="name"
+                    placeholder="مثال: Chief Reza"
+                />
+                <InputError class="mt-1 text-xs text-red-400" :message="registerForm.errors.name" />
+            </div>
+
+            <div>
+                <label for="reg-email" class="block text-xs font-bold text-gray-300 mb-1">آدرس ایمیل</label>
+                <input
+                    id="reg-email"
+                    type="email"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:font-sans placeholder:text-gray-500"
+                    v-model="registerForm.email"
+                    required
+                    autocomplete="username"
+                    placeholder="example@mail.com"
+                />
+                <InputError class="mt-1 text-xs text-red-400" :message="registerForm.errors.email" />
+            </div>
+
+            <div>
+                <label for="reg-mobile" class="block text-xs font-bold text-gray-300 mb-1">شماره موبایل</label>
+                <input
+                    id="reg-mobile"
+                    type="text"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:font-sans placeholder:text-gray-500 text-left"
+                    v-model="registerForm.mobile"
+                    required
+                    autocomplete="tel"
+                    placeholder="09123456789"
+                />
+                <InputError class="mt-1 text-xs text-red-400" :message="registerForm.errors.mobile" />
+            </div>
+
+            <div>
+                <label for="reg-pass" class="block text-xs font-bold text-gray-300 mb-1">رمز عبور</label>
+                <input
+                    id="reg-pass"
+                    type="password"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition placeholder:text-gray-500"
+                    v-model="registerForm.password"
+                    required
+                    autocomplete="new-password"
+                    placeholder="حداقل ۸ کاراکتر"
+                />
+                <InputError class="mt-1 text-xs text-red-400" :message="registerForm.errors.password" />
+            </div>
+
+            <div>
+                <label for="reg-pass-confirm" class="block text-xs font-bold text-gray-300 mb-1">تکرار رمز عبور</label>
+                <input
+                    id="reg-pass-confirm"
+                    type="password"
+                    class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition placeholder:text-gray-500"
+                    v-model="registerForm.password_confirmation"
+                    required
+                    autocomplete="new-password"
+                    placeholder="تکرار رمز عبور"
+                />
+                <InputError class="mt-1 text-xs text-red-400" :message="registerForm.errors.password_confirmation" />
+            </div>
+
+            <div class="pt-2">
+                <button
+                    type="submit"
+                    class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-gray-950 font-black text-sm shadow-lg shadow-amber-500/25 transition duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    :disabled="registerForm.processing"
                 >
-                    ثبت‌نام رایگان
-                </Link>
+                    <span v-if="registerForm.processing">در حال ایجاد حساب...</span>
+                    <span v-else>🛡️ ثبت‌نام و شروع بازی</span>
+                </button>
             </div>
         </form>
     </GuestLayout>
