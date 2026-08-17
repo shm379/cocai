@@ -31,69 +31,95 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head title="ورود به حساب کاربری — CoCAI" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
+        <div class="mb-6 text-center">
+            <h2 class="text-xl font-bold text-white">ورود به پنل فرماندهی</h2>
+            <p class="text-xs text-gray-400 mt-1">برای مشاهده تحلیل‌ها و برنامه‌ریزی تسک‌ها وارد شوید</p>
+        </div>
+
+        <div v-if="status" class="mb-4 text-xs font-bold text-emerald-400 bg-emerald-500/20 p-3 rounded-xl border border-emerald-500/30 text-center">
             {{ status }}
         </div>
 
-        <form @submit.prevent="submit">
+        <form @submit.prevent="submit" class="space-y-4">
+            <!-- Email -->
             <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+                <label for="email" class="block text-xs font-bold text-gray-300 mb-1.5">ایمیل کاربری</label>
+                <div class="relative">
+                    <input
+                        id="email"
+                        type="email"
+                        class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition font-mono placeholder:font-sans placeholder:text-gray-500"
+                        v-model="form.email"
+                        required
+                        autofocus
+                        autocomplete="username"
+                        placeholder="example@mail.com"
+                    />
+                </div>
+                <InputError class="mt-1.5 text-xs text-red-400" :message="form.errors.email" />
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4 block">
-                <label class="flex items-center">
-                    <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600 dark:text-gray-400"
-                        >Remember me</span
+            <!-- Password -->
+            <div>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label for="password" class="block text-xs font-bold text-gray-300">رمز عبور</label>
+                    <Link
+                        v-if="canResetPassword"
+                        :href="route('password.request')"
+                        class="text-[11px] text-amber-400 hover:text-amber-300 transition"
                     >
+                        فراموشی رمز عبور؟
+                    </Link>
+                </div>
+                <div class="relative">
+                    <input
+                        id="password"
+                        type="password"
+                        class="w-full bg-gray-900/90 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition placeholder:text-gray-500"
+                        v-model="form.password"
+                        required
+                        autocomplete="current-password"
+                        placeholder="••••••••"
+                    />
+                </div>
+                <InputError class="mt-1.5 text-xs text-red-400" :message="form.errors.password" />
+            </div>
+
+            <!-- Remember me -->
+            <div class="flex items-center justify-between pt-1">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        v-model="form.remember"
+                        class="w-4 h-4 rounded bg-gray-900 border-gray-700 text-amber-500 focus:ring-amber-500 focus:ring-offset-gray-900"
+                    />
+                    <span class="text-xs text-gray-400">مرا به خاطر بسپار</span>
                 </label>
             </div>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    v-if="canResetPassword"
-                    :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
-                >
-                    Forgot your password?
-                </Link>
-
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
+            <!-- Submit Button -->
+            <div class="pt-2">
+                <button
+                    type="submit"
+                    class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-gray-950 font-black text-sm shadow-lg shadow-amber-500/25 transition duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     :disabled="form.processing"
                 >
-                    Log in
-                </PrimaryButton>
+                    <span v-if="form.processing">در حال احراز هویت...</span>
+                    <span v-else>🚀 ورود به حساب کاربری</span>
+                </button>
+            </div>
+
+            <!-- Switch to Register -->
+            <div class="pt-4 mt-4 border-t border-gray-700/60 text-center text-xs text-gray-400">
+                <span>هنوز حساب کاربری نساخته‌اید؟</span>
+                <Link
+                    :href="route('register')"
+                    class="text-amber-400 font-bold hover:text-amber-300 mr-1.5 underline underline-offset-4"
+                >
+                    ثبت‌نام رایگان
+                </Link>
             </div>
         </form>
     </GuestLayout>
