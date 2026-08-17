@@ -89,6 +89,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/ai/live-attack-plan', [\App\Http\Controllers\AiTacticalController::class, 'liveAttackPlan'])
         ->name('ai.live-attack-plan');
 
+    // پلن اتک خودکار و دانلود ایجنت اندروید (Android In-Game Auto-Attack Bot)
+    Route::post('/api/android/generate-macro', [\App\Http\Controllers\AndroidCompanionController::class, 'generateMacro'])
+        ->name('android.generate-macro');
+    Route::get('/downloads/cocai-android/cocai-android-agent.py', [\App\Http\Controllers\AndroidCompanionController::class, 'downloadAgentScript'])
+        ->name('android.download-agent');
+
     // صفحه آزمایشگاه استراتژی
     Route::get('/dashboard/strategy-lab', [StrategyLabController::class, 'index'])
         ->name('dashboard.strategy-lab');

@@ -76,6 +76,7 @@
 
                     <!-- تب ۲: وار و استراتژی‌های حمله (War & Strategies) -->
                     <div v-else-if="activeTab === 'strategy'" class="space-y-6">
+                        <AndroidCompanionControlCenter />
                         <MobileLiveAttackCompanion />
                         <MetaTierListHub />
                         <AiTacticalSimulator />
@@ -271,6 +272,7 @@ import WarAttackVisualizer from "@/Components/Dashboard/WarAttackVisualizer.vue"
 import CwlStrategyHub from "@/Components/Dashboard/CwlStrategyHub.vue"
 import EquipmentMatrixHub from "@/Components/Dashboard/EquipmentMatrixHub.vue"
 import MobileLiveAttackCompanion from "@/Components/Dashboard/MobileLiveAttackCompanion.vue"
+import AndroidCompanionControlCenter from "@/Components/Dashboard/AndroidCompanionControlCenter.vue"
 
 export default {
     props: {
@@ -318,6 +320,7 @@ export default {
         CwlStrategyHub,
         EquipmentMatrixHub,
         MobileLiveAttackCompanion,
+        AndroidCompanionControlCenter,
 
         GameSwitcherBar,
         ClashRoyaleHub,
