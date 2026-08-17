@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * NabuGate Multi-Agent AI Suite for Clash of Clans and Supercell Games.
  * Provides specialized agent personas (War General, Progression Coach, Base Architect, Loot Master, Supercell Pro)
- * strictly grounded by ProgressionService facts and 2026 meta mechanics.
+ * grounded by ProgressionService facts with deterministic tactical fallback.
  */
 class ChatbotService
 {
@@ -80,7 +80,8 @@ PROMPT;
      */
     public function buildFactBlock(User $user): ?string
     {
-        $gameData = $user->gameProfile->game_data ?? [];
+        $gameProfile = $user->gameProfile()->first() ?? $user->gameProfile;
+        $gameData = $gameProfile->game_data ?? [];
         if (empty($gameData)) {
             return null;
         }
@@ -103,12 +104,11 @@ PROMPT;
     }
 
     /**
-     * ارتباط مستقیم با NabuGate AI Gateway
+     * ارتباط با NabuGate AI Gateway
      */
     protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 900): string
     {
-        if (empty($this->baseUrl)) {
-            Log::error('NabuGate base_url is not configured (services.nabu.base_url).');
+        if (empty($this->baseUrl) || empty($this->apiKey)) {
             return '';
         }
 
@@ -121,8 +121,8 @@ PROMPT;
 
         foreach ([1, 2] as $attempt) {
             try {
-                $response = Http::timeout(120)
-                    ->connectTimeout(30)
+                $response = Http::timeout(15)
+                    ->connectTimeout(5)
                     ->withToken($this->apiKey)
                     ->acceptJson()
                     ->post(rtrim($this->baseUrl, '/').'/v1/chat/completions', [
@@ -149,7 +149,7 @@ PROMPT;
     }
 
     /**
-     * ارسال پرسش به ایجنت با قابلیت انتخاب مود ایجنت
+     * ارسال پرسش به ایجنت با قابلیت انتخاب مود ایجنت + فال‌بک تاکتیکی هوشمند
      */
     public function answerUserQuestionWithAgent(User $user, string $question, string $agentMode = 'war_general'): string
     {
@@ -157,7 +157,7 @@ PROMPT;
         $facts = $this->buildFactBlock($user);
 
         $prompt = $facts
-            ? "{$facts}\n\n[سؤال یا درخواست فرمانده]:\n{$question}"
+            ? "{$facts}\n\n[سؤال یا درخواست تاکتیکی فرمانده]:\n{$question}"
             : $question;
 
         $content = $this->chat([
@@ -165,11 +165,67 @@ PROMPT;
             ['role' => 'user', 'content' => $prompt],
         ], 0.45, 950);
 
-        if (empty($content)) {
-            return 'ژنرال هوش مصنوعی در حال بازسازی نقشه‌های نبرد است. لطفاً چند لحظه دیگر سؤال خود را دوباره مطرح کنید.';
+        if (! empty($content)) {
+            return $content;
         }
 
-        return $content;
+        // اگر ارتباط با LLM برقرار نشد، خروجی تاکتیکی قطعی متناسب با ایجنت و تاون‌هال کاربر تولید می‌شود
+        return $this->generateDeterministicAgentAdvice($user, $question, $agentMode);
+    }
+
+    /**
+     * پاسخ تخصصی و قطعی ایجنت‌ها در صورت عدم دسترسی به سرور هوش مصنوعی
+     */
+    protected function generateDeterministicAgentAdvice(User $user, string $question, string $agentMode): string
+    {
+        $gameProfile = $user->gameProfile()->first() ?? $user->gameProfile;
+        $gameData = $gameProfile->game_data ?? [];
+        $analysis = !empty($gameData) ? $this->progression->analyze($gameData) : null;
+        $th = $analysis['town_hall'] ?? 15;
+        $topUpgrade = $analysis['upgrade_queue'][0]['name'] ?? 'قهرمانان و نیروها';
+        $warArmy = $analysis['armies']['war'][0]['name_fa'] ?? 'روت رایدر اسمش';
+
+        switch ($agentMode) {
+            case 'war_general':
+                return "⚔️ **دستور عملیاتی ژنرال تایتوس برای تاون‌هال {$th}:**\n\n"
+                    ."۱. **ارتش پیشنهادی متای وار:** «{$warArmy}» بهترین نرخ ۳ ستاره را برای سطح فعلی نیروهای شما دارد.\n"
+                    ."۲. **فاز اول (فانلینگ):** کینگ و کویین را از یک گوشه برای پاکسازی ساختمان‌های بیرونی بفرستید تا نیروهای اصلی به سمت هسته بیس مونوپلی شوند.\n"
+                    ."۳. **فاز دوم (ورود به هسته):** نیروهای اصلی را همراه با گرند واردن وارد کنید و ابیلیتی واردن (Eternal Tome) را هنگام رسیدن به تاون‌هال یا منولیت فعال کنید.\n"
+                    ."۴. **اسپل‌ها:** اسپل Overgrowth را روی بخش‌های سنگین دفاعی بندازید تا ارتش شما مستقیم به سراغ تاون‌هال برود.";
+
+            case 'progression_coach':
+                $queueText = '';
+                if (!empty($analysis['upgrade_queue'])) {
+                    foreach (array_slice($analysis['upgrade_queue'], 0, 3) as $idx => $item) {
+                        $queueText .= "\n" . ($idx + 1) . ". **{$item['name']}** ({$item['current']} → {$item['target']}) — {$item['reason_fa']}";
+                    }
+                }
+                return "📈 **برنامه تحلیلی مهندس عمر برای ارتقای پایگاه تاون‌هال {$th}:**\n\n"
+                    ."• **اولویت شماره یک:** {$topUpgrade}\n"
+                    ."• **۳ ارتقای حیاتی بعدی:**{$queueText}\n\n"
+                    ."💎 **بودجه‌بندی سنگ‌های بلک‌اسمیت Ores:** تمام سنگ‌های Starry و Glowy را ابتدا روی تجهیزات اپیک (Giant Gauntlet و Frozen Arrow) تا لول ۱۸ متمرکز کنید.";
+
+            case 'base_architect':
+                return "🛡️ **راهنمای چیدمان و معماری بیس تاون‌هال {$th} توسط استاد داوینچی:**\n\n"
+                    ."۱. **فاصله‌گذاری منولیت و تاون‌هال:** حداقل ۹ کاشی فاصله ایجاد کنید تا اتکر نتواند با اسپل فریز یا رعد هر دو را همزمان خنثی کند.\n"
+                    ."۲. **زاویه سویپرها (Air Sweeper):** سویپرها را در خلاف جهت مسیر ورودی تاون‌هال قرار دهید تا حملات بلیمپ سوپر آرچر مختل شوند.\n"
+                    ."۳. **تله‌های آنتی روت رایدر:** بمب‌های غول‌پیکر و تله‌های اسکلتی زمینی را نزدیک تاون‌هال و اینفرنوهای چندهدفه متمرکز کنید.";
+
+            case 'farming_master':
+                return "🌾 **فرمول لوت فوق‌سریع شاه گابلین بارنابی برای تاون‌هال {$th}:**\n\n"
+                    ."• **ترکیب ارتش:** ۷۵ گوبلین مخفی (Sneaky Goblin) + ۶ دیوارشکن سوپر + ۴ اسپل پرش + ۳ اسپل سرعت (Haste).\n"
+                    ."• **محدوده کاپ طلایی:** برای تاون‌هال {$th} محدوده کاپ ۲۴۰۰ تا ۳۰۰۰ (Master II تا Champion III) بیشترین بیس‌های مرده با بالای ۱ میلیون لوت را دارد.\n"
+                    ."• **استراتژی:** فقط کالکتورها و مخازن بیرونی را بزنید و فوراً بتل را ببندید تا در هر ساعت بیش از ۱۰ میلیون منابع ذخیره کنید.";
+
+            case 'supercell_pro':
+                return "👑 **نکات متای قهرمانی مربی اسپارک (سوپرسل پرو):**\n\n"
+                    ."• **کلش رویال:** در متای فعلی، کارت‌های Evo و کنترل اکسیر در دفاع کلید پیروزی هستند.\n"
+                    ."• **براول استارز:** برای مودهای رنکد، براولرهای با هایپرشارژ آماده (مثل Spike, Fang, Colt) اولویت اول درفت هستند.\n"
+                    ."• **اسکواد باستر:** همیشه در دقایق اول روی فیوژن نیروهای فارمر (مثل Greg و Mavis) برای تامین سکه صندوق‌ها تمرکز کنید.";
+
+            default:
+                return "فرمانده عزیز، برای تاون‌هال {$th} شما اولویت اول ارتقای «{$topUpgrade}» و استفاده از ارتش «{$warArmy}» در وار است.";
+        }
     }
 
     /**
@@ -242,7 +298,13 @@ PROMPT;
             ['role' => 'user', 'content' => $prompt],
         ], 0.4);
 
-        return empty($content) ? 'خطا در ارتباط با ایجنت استراتژی هوش مصنوعی.' : $content;
+        if (! empty($content)) {
+            return $content;
+        }
+
+        return $type === 'war_strategy'
+            ? $this->generateDeterministicAgentAdvice($user, 'استراتژی وار', 'war_general')
+            : $this->generateDeterministicAgentAdvice($user, 'برنامه روزانه', 'progression_coach');
     }
 
     public function generateCalendar($user): array
