@@ -10,8 +10,27 @@ class AiTacticalController extends Controller
 {
     public function __construct(
         protected AttackSimulatorService $attackSimulator,
-        protected DefenseVulnerabilityScanner $defenseScanner
+        protected DefenseVulnerabilityScanner $defenseScanner,
+        protected \App\Services\AI\CwlManagerService $cwlManager
     ) {
+    }
+
+    /**
+     * تحلیل و استراتژی وارلیگ CWL
+     */
+    public function analyzeCwl(Request $request)
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return response()->json(['ok' => false, 'message' => 'کاربر احراز هویت نشده است.'], 401);
+        }
+
+        $league = $request->input('league', 'masters_1');
+        $rosterSize = (int) $request->input('roster_size', 15);
+
+        $result = $this->cwlManager->analyzeCwl($user, $league, $rosterSize);
+
+        return response()->json($result);
     }
 
     /**

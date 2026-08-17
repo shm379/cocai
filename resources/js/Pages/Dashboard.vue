@@ -80,6 +80,7 @@
                         <AiTacticalSimulator />
                         <WarAttackVisualizer />
                         <DefenseAuditCard />
+                        <CwlStrategyHub />
                         <WarPlannerHub
                             :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
                         />
@@ -265,6 +266,7 @@ import AiTacticalSimulator from "@/Components/Dashboard/AiTacticalSimulator.vue"
 import DefenseAuditCard from "@/Components/Dashboard/DefenseAuditCard.vue"
 import GamerAvatarShowcase from "@/Components/Dashboard/GamerAvatarShowcase.vue"
 import WarAttackVisualizer from "@/Components/Dashboard/WarAttackVisualizer.vue"
+import CwlStrategyHub from "@/Components/Dashboard/CwlStrategyHub.vue"
 
 export default {
     props: {
@@ -309,6 +311,7 @@ export default {
         DefenseAuditCard,
         GamerAvatarShowcase,
         WarAttackVisualizer,
+        CwlStrategyHub,
 
         GameSwitcherBar,
         ClashRoyaleHub,
