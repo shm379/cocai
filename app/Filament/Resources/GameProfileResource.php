@@ -58,7 +58,7 @@ class GameProfileResource extends Resource
                 Tables\Columns\TextColumn::make('town_hall')
                     ->label('سطح تاون‌هال')
                     ->badge()
-                    ->sortable()
+                    ->getStateUsing(fn ($record) => (int) ($record->game_data['townHallLevel'] ?? 1))
                     ->color(fn ($state): string => match (true) {
                         $state >= 16 => 'danger',
                         $state >= 14 => 'warning',
@@ -70,14 +70,14 @@ class GameProfileResource extends Resource
                 Tables\Columns\TextColumn::make('trophies')
                     ->label('کاپ (Trophies)')
                     ->numeric()
-                    ->sortable()
                     ->badge()
+                    ->getStateUsing(fn ($record) => (int) ($record->game_data['trophies'] ?? 0))
                     ->color('success')
                     ->icon('heroicon-m-trophy'),
 
                 Tables\Columns\TextColumn::make('clan_name')
                     ->label('کلن')
-                    ->searchable()
+                    ->getStateUsing(fn ($record) => (string) ($record->game_data['clan']['name'] ?? 'بدون کلن'))
                     ->badge()
                     ->color('primary')
                     ->default('بدون کلن'),

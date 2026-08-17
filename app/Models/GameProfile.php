@@ -34,4 +34,19 @@ class GameProfile extends Model
     {
         return $this->hasMany(Calendar::class,'game_profile_id');
     }
+
+    public function getTownHallAttribute(): int
+    {
+        return (int) ($this->game_data['townHallLevel'] ?? 1);
+    }
+
+    public function getTrophiesAttribute(): int
+    {
+        return (int) ($this->game_data['trophies'] ?? 0);
+    }
+
+    public function getClanNameAttribute(): string
+    {
+        return (string) ($this->game_data['clan']['name'] ?? 'بدون کلن');
+    }
 }

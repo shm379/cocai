@@ -19,7 +19,7 @@ class StatsOverview extends BaseWidget
         $totalUsers = User::count();
         $activeStreakUsers = User::where('task_streak', '>', 0)->count();
         $totalProfiles = GameProfile::count();
-        $avgTownHall = (int) (GameProfile::avg('town_hall') ?: 14);
+        $avgTownHall = (int) (GameProfile::all()->avg(fn ($p) => (int) ($p->game_data['townHallLevel'] ?? 1)) ?: 14);
         $totalMaps = Map::count();
         $totalLabSessions = StrategyLabSession::count();
         $completedTasks = Task::where('status', 'completed')->count();

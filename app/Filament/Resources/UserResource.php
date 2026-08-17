@@ -36,7 +36,6 @@ class UserResource extends Resource
                 Forms\Components\DateTimePicker::make('email_verified_at'),
                 Forms\Components\TextInput::make('mobile')
                     ->maxLength(255),
-                Forms\Components\DateTimePicker::make('mobile_verified_at'),
                 Forms\Components\TextInput::make('password')
                     ->password()
                     ->required()
@@ -64,9 +63,6 @@ class UserResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('mobile')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('mobile_verified_at')
-                    ->dateTime()
-                    ->sortable(),
                 Tables\Columns\IconColumn::make('is_admin')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')

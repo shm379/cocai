@@ -36,7 +36,8 @@ class RecentProfilesWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('town_hall')
                     ->label('سطح تاون‌هال')
                     ->badge()
-                    ->color(fn (int $state): string => match (true) {
+                    ->getStateUsing(fn ($record) => (int) ($record->game_data['townHallLevel'] ?? 1))
+                    ->color(fn ($state): string => match (true) {
                         $state >= 16 => 'danger',
                         $state >= 14 => 'warning',
                         $state >= 12 => 'info',
@@ -47,13 +48,14 @@ class RecentProfilesWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('trophies')
                     ->label('تروفی (کاپ)')
                     ->numeric()
-                    ->sortable()
                     ->badge()
                     ->color('success')
+                    ->getStateUsing(fn ($record) => (int) ($record->game_data['trophies'] ?? 0))
                     ->icon('heroicon-m-trophy'),
 
                 Tables\Columns\TextColumn::make('clan_name')
                     ->label('نام کلن')
+                    ->getStateUsing(fn ($record) => (string) ($record->game_data['clan']['name'] ?? 'بدون کلن'))
                     ->default('بدون کلن')
                     ->badge()
                     ->color('primary')

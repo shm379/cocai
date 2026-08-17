@@ -17,8 +17,9 @@ class TownHallDistributionChart extends ChartWidget
         $labels = ['TH 11', 'TH 12', 'TH 13', 'TH 14', 'TH 15', 'TH 16', 'TH 17', 'TH 18'];
         $thLevels = [11, 12, 13, 14, 15, 16, 17, 18];
 
+        $allProfiles = GameProfile::all();
         foreach ($thLevels as $level) {
-            $count = GameProfile::where('town_hall', $level)->count();
+            $count = $allProfiles->filter(fn ($p) => (int) ($p->game_data['townHallLevel'] ?? 0) === $level)->count();
             // Default visual representation if DB is sparse
             $thCounts[] = $count > 0 ? $count : rand(1, 8);
         }
