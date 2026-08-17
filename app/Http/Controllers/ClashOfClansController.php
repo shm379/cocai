@@ -25,4 +25,16 @@ class ClashOfClansController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
+
+    public function getClan(Request $request)
+    {
+        $clanTag = $request->input('clan_tag');
+
+        try {
+            $clanData = $this->clashService->getClanData($clanTag);
+            return response()->json(['data' => $clanData]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
 }

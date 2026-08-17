@@ -116,6 +116,12 @@ Route::get('/api/compare-progress', [UserController::class, 'compareProgress'])
 Route::get('/clash/player', [\App\Http\Controllers\ClashOfClansController::class, 'getPlayer'])
     ->middleware(['auth', 'throttle:30,1'])->name('clash.player');
 
+Route::get('/clash/clan', [\App\Http\Controllers\ClashOfClansController::class, 'getClan'])
+    ->middleware(['auth', 'throttle:30,1'])->name('clash.clan');
+
+Route::get('/api/supercell/profile', [\App\Http\Controllers\SupercellHubController::class, 'getProfile'])
+    ->middleware(['auth', 'throttle:30,1'])->name('supercell.profile');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

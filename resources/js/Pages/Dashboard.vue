@@ -7,43 +7,62 @@
         <!-- هدر بالای صفحه -->
         <HeaderComp :user="user" />
 
-        <!-- اگر Player Tag ثبت نشده، فرم نمایش بده -->
-        <div v-if="!user.game_profile" class="w-full flex flex-col items-center">
-            <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-white mb-2">به CoCAI خوش آمدید</h1>
-                <p class="text-gray-300">دستیار هوشمند کلش اف کلنز — تسک روزانه، استراتژی و نقشه</p>
-            </div>
-            <PlayerTagForm
-                :saving="saving"
-                @submit="handlePlayerTagSubmit"
+        <!-- محتوای اصلی -->
+        <div class="w-full max-w-5xl flex-1 mt-4">
+            <!-- نوار انتخاب بازی سوپرسل -->
+            <GameSwitcherBar
+                :activeGame="activeSupercellGame"
+                @select-game="val => activeSupercellGame = val"
             />
-        </div>
 
-        <!-- اگر player_tag ثبت شده، بقیه بخش‌ها را نمایش بده -->
-        <div v-else class="w-full max-w-5xl flex-1 mt-4">
+            <!-- ۱) کلش رویال -->
+            <ClashRoyaleHub v-if="activeSupercellGame === 'clash_royale'" />
 
-            <!-- نوار تب‌ها -->
+            <!-- ۲) براول استارز -->
+            <BrawlStarsHub v-else-if="activeSupercellGame === 'brawl_stars'" />
 
-            <!-- تب ۱: پروفایل (Summary + تقویم + تحلیل‌های هوشمند) -->
-            <div v-if="activeTab === 'profile'">
-                <ProfileSummary :gameProfile="gameProfile" />
-                <ProgressSummary :analysis="analysis" />
-                <WarReadinessCard
-                    v-if="analysis.war_readiness"
-                    :warReadiness="analysis.war_readiness"
-                    :warStars="gameProfile.warStars || 0"
-                    :warRatingFa="analysis.clan_activity?.war_rating_fa || ''"
-                />
-                <FarmingAdvisorCard
-                    v-if="analysis.farming"
-                    :farming="analysis.farming"
-                    :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
-                    :currentTrophies="gameProfile.trophies || 0"
-                />
-                <HeroEquipmentSection
-                    v-if="analysis.equipment"
-                    :equipment="analysis.equipment"
-                />
+            <!-- ۳) اسکواد باستر -->
+            <SquadBustersHub v-else-if="activeSupercellGame === 'squad_busters'" />
+
+            <!-- ۴) بوم بیچ -->
+            <BoomBeachHub v-else-if="activeSupercellGame === 'boom_beach'" />
+
+            <!-- ۵) کلش اف کلنز -->
+            <template v-else>
+                <!-- اگر Player Tag ثبت نشده، فرم نمایش بده -->
+                <div v-if="!user.game_profile" class="w-full flex flex-col items-center">
+                    <div class="text-center mb-6">
+                        <h1 class="text-3xl font-bold text-white mb-2">به CoCAI خوش آمدید</h1>
+                        <p class="text-gray-300">دستیار هوشمند کلش اف کلنز — تسک روزانه، استراتژی و نقشه</p>
+                    </div>
+                    <PlayerTagForm
+                        :saving="saving"
+                        @submit="handlePlayerTagSubmit"
+                    />
+                </div>
+
+                <!-- اگر player_tag ثبت شده، بقیه بخش‌ها را نمایش بده -->
+                <div v-else>
+                    <!-- تب ۱: پروفایل (Summary + تقویم + تحلیل‌های هوشمند) -->
+                    <div v-if="activeTab === 'profile'">
+                        <ProfileSummary :gameProfile="gameProfile" />
+                        <ProgressSummary :analysis="analysis" />
+                        <WarReadinessCard
+                            v-if="analysis.war_readiness"
+                            :warReadiness="analysis.war_readiness"
+                            :warStars="gameProfile.warStars || 0"
+                            :warRatingFa="analysis.clan_activity?.war_rating_fa || ''"
+                        />
+                        <FarmingAdvisorCard
+                            v-if="analysis.farming"
+                            :farming="analysis.farming"
+                            :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
+                            :currentTrophies="gameProfile.trophies || 0"
+                        />
+                        <HeroEquipmentSection
+                            v-if="analysis.equipment"
+                            :equipment="analysis.equipment"
+                        />
                 <HeroEquipmentLoadouts />
                 <BlacksmithOrePlanner />
                 <AchievementGemTracker
@@ -128,7 +147,14 @@
 
             <!-- تب ۵: کلن (ClanOverview) -->
             <div v-else-if="activeTab === 'clanOverview'">
-                <ClanOverview :clan="gameProfile.clan" />
+                <ClanOverview
+                    :clan="gameProfile.clan"
+                    :playerRole="gameProfile.role"
+                    :capitalContributed="gameProfile.clanCapitalContributions || 0"
+                    :donations="gameProfile.donations || 0"
+                    :donationsReceived="gameProfile.donationsReceived || 0"
+                    :warStars="gameProfile.warStars || 0"
+                />
             </div>
 
             <!-- تب ۶: بیلدر بیس (BuilderBase) -->
@@ -145,13 +171,15 @@
                 <AiAssistant :gameProfile="gameProfile" />
             </div>
 
+                </div>
+            </template>
         </div>
 
-        <!-- منوی پایین صفحه -->
+        <!-- منوی پایین صفحه (فقط در حالت کلش اف کلنز) -->
         <BottomNav
+            v-if="user.game_profile && activeSupercellGame === 'coc'"
             :activeTab="activeTab"
             @update:activeTab="val => activeTab = val"
-            v-if="user.game_profile"
         />
         <!-- لودینگ اورلی + شمارش معکوس (در صورت نیاز) -->
         <LoadingOverlay
@@ -176,6 +204,13 @@ import PlayerTagForm from "@/Components/Dashboard/PlayerTagForm.vue"
 import CalendarAndTask from "@/Components/Dashboard/CalendarAndTask.vue"
 import BottomNav from "@/Components/Dashboard/BottomNav.vue"
 import LoadingOverlay from "@/Components/Dashboard/LoadingOverlay.vue"
+
+/* نوار انتخاب بازی و هاب بازی‌های سوپرسل */
+import GameSwitcherBar from "@/Components/Dashboard/GameSwitcherBar.vue"
+import ClashRoyaleHub from "@/Components/Dashboard/ClashRoyaleHub.vue"
+import BrawlStarsHub from "@/Components/Dashboard/BrawlStarsHub.vue"
+import SquadBustersHub from "@/Components/Dashboard/SquadBustersHub.vue"
+import BoomBeachHub from "@/Components/Dashboard/BoomBeachHub.vue"
 
 /* تب‌های سفارشی */
 import ProfileSummary from "@/Components/Dashboard/ProfileSummary.vue"
@@ -241,6 +276,12 @@ export default {
         TownHallFilter,
         BuilderHallFilter,
 
+        GameSwitcherBar,
+        ClashRoyaleHub,
+        BrawlStarsHub,
+        SquadBustersHub,
+        BoomBeachHub,
+
         ProfileSummary,
         ProgressSummary,
         WarReadinessCard,
@@ -263,6 +304,7 @@ export default {
     },
     data() {
         return {
+            activeSupercellGame: 'coc',
             saving: false,
             loading: false,
             activeTab: 'profile',

@@ -53,6 +53,7 @@ export default {
                 'clanOverview',
                 'builderBase',
                 'assistant',
+                'strategy_lab',
             ],
             tabIcons: {
                 profile: '/images/icons/user.png',
@@ -64,7 +65,8 @@ export default {
                 progressChart: '/images/icons/bar-chart.png',
                 clanOverview: '/images/icons/construction.png',
                 builderBase: '/images/icons/construction.png',
-                assistant: '/images/icons/construction.png'
+                assistant: '/images/icons/construction.png',
+                strategy_lab: '/images/icons/construction.png',
             },
             tabLabels: {
                 profile: 'پروفایل',
@@ -76,12 +78,17 @@ export default {
                 progressChart: 'نمودار تروفی',
                 clanOverview: 'وضعیت کلن',
                 builderBase: 'بیلدر بیس',
-                assistant: 'دستیار AI'
+                assistant: 'دستیار AI',
+                strategy_lab: 'آزمایشگاه'
             }
         }
     },
     methods: {
         setActiveTab(tabName) {
+            if (tabName === 'strategy_lab') {
+                this.$inertia.get(route('dashboard.strategy-lab'));
+                return;
+            }
             // به جای تغییر مستقیم prop، رویدادی emit می‌کنیم
             this.$emit('update:activeTab', tabName)
         }
