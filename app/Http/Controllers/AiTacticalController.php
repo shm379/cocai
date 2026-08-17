@@ -11,8 +11,25 @@ class AiTacticalController extends Controller
     public function __construct(
         protected AttackSimulatorService $attackSimulator,
         protected DefenseVulnerabilityScanner $defenseScanner,
-        protected \App\Services\AI\CwlManagerService $cwlManager
+        protected \App\Services\AI\CwlManagerService $cwlManager,
+        protected \App\Services\AI\LiveAttackCompanionService $liveAttack
     ) {
+    }
+
+    /**
+     * تولید پلن زنده و دستورالعمل ثانیه‌ای اتک روی موبایل (Live Attack In-Game HUD)
+     */
+    public function liveAttackPlan(Request $request)
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return response()->json(['ok' => false, 'message' => 'کاربر احراز هویت نشده است.'], 401);
+        }
+
+        $scoutData = $request->all();
+        $result = $this->liveAttack->generateLiveHudPlan($user, $scoutData);
+
+        return response()->json($result);
     }
 
     /**

@@ -79,13 +79,15 @@ Route::middleware('auth')->group(function () {
         return response()->json(['ok' => true, 'items' => $items]);
     })->name('api.meta-tier-items');
 
-    // شبیه‌ساز حمله و اسکنر دفاعی هوش مصنوعی (AI War Simulator & Defense Scanner & CWL)
+    // شبیه‌ساز حمله و اسکنر دفاعی هوش مصنوعی (AI War Simulator & Defense Scanner & CWL & Live HUD)
     Route::post('/api/ai/simulate-attack', [\App\Http\Controllers\AiTacticalController::class, 'simulateAttack'])
         ->name('ai.simulate-attack');
     Route::get('/api/ai/defense-scan', [\App\Http\Controllers\AiTacticalController::class, 'scanDefense'])
         ->name('ai.defense-scan');
     Route::get('/api/ai/cwl-analysis', [\App\Http\Controllers\AiTacticalController::class, 'analyzeCwl'])
         ->name('ai.cwl-analysis');
+    Route::post('/api/ai/live-attack-plan', [\App\Http\Controllers\AiTacticalController::class, 'liveAttackPlan'])
+        ->name('ai.live-attack-plan');
 
     // صفحه آزمایشگاه استراتژی
     Route::get('/dashboard/strategy-lab', [StrategyLabController::class, 'index'])
