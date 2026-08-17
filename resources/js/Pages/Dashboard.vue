@@ -79,7 +79,9 @@
                 />
                 <ArmyLinkGenerator />
                 <HeroPetPlanner />
+                <SiegeMachineAdvisor />
                 <DefenseMatrixAdvisor />
+                <CwlMedalCalculator />
                 <ClanCapitalPlanner />
                 <BuilderBaseProgressCard
                     v-if="analysis.builder_base"
@@ -237,6 +239,8 @@ import DefenseMatrixAdvisor from "@/Components/Dashboard/DefenseMatrixAdvisor.vu
 import WarPlannerHub from "@/Components/Dashboard/WarPlannerHub.vue"
 import HeroPetPlanner from "@/Components/Dashboard/HeroPetPlanner.vue"
 import ClanCapitalPlanner from "@/Components/Dashboard/ClanCapitalPlanner.vue"
+import SiegeMachineAdvisor from "@/Components/Dashboard/SiegeMachineAdvisor.vue"
+import CwlMedalCalculator from "@/Components/Dashboard/CwlMedalCalculator.vue"
 import ArmyLinkGenerator from "@/Components/Dashboard/ArmyLinkGenerator.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
@@ -312,6 +316,8 @@ export default {
         WarPlannerHub,
         HeroPetPlanner,
         ClanCapitalPlanner,
+        SiegeMachineAdvisor,
+        CwlMedalCalculator,
         ArmyLinkGenerator,
         BuilderBaseProgressCard,
         UpgradeTimeCalculator,
