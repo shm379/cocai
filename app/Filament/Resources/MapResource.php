@@ -61,35 +61,45 @@ class MapResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('image_url')
+                    ->label('پیش‌نمایش نقشه')
+                    ->circular(false)
+                    ->square(),
+
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\ImageColumn::make('image_url'),
-                Tables\Columns\TextColumn::make('thumbnail_url')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('map_link')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('copy_link')
-                    ->searchable(),
+                    ->label('عنوان نقشه')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+
                 Tables\Columns\TextColumn::make('view_count')
+                    ->label('بازدید')
                     ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('download_count')
-                    ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->badge()
+                    ->color('info')
+                    ->icon('heroicon-m-eye'),
+
                 Tables\Columns\TextColumn::make('like_count')
+                    ->label('لایک')
                     ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('report_count')
+                    ->sortable()
+                    ->badge()
+                    ->color('danger')
+                    ->icon('heroicon-m-heart'),
+
+                Tables\Columns\TextColumn::make('download_count')
+                    ->label('کپی')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->badge()
+                    ->color('success')
+                    ->icon('heroicon-m-arrow-down-tray'),
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('تاریخ درج')
+                    ->dateTime('Y/m/d')
+                    ->sortable(),
             ])
             ->filters([
                 //

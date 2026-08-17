@@ -41,8 +41,16 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
+                \App\Filament\Widgets\StatsOverview::class,
+                \App\Filament\Widgets\TownHallDistributionChart::class,
+                \App\Filament\Widgets\DailyActivityChart::class,
+                \App\Filament\Widgets\RecentProfilesWidget::class,
+            ])
+            ->navigationItems([
+                \Filament\Navigation\NavigationItem::make('بازگشت به برنامه اصلی')
+                    ->url('/dashboard')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->sort(99),
             ])
             ->middleware([
                 EncryptCookies::class,

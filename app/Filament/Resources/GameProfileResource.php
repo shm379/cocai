@@ -42,19 +42,50 @@ class GameProfileResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('فرمانده (کاربر)')
+                    ->searchable()
+                    ->sortable()
+                    ->icon('heroicon-m-user'),
+
                 Tables\Columns\TextColumn::make('player_tag')
-                    ->searchable(),
+                    ->label('تگ بازیکن')
+                    ->searchable()
+                    ->badge()
+                    ->copyable()
+                    ->color('warning'),
+
+                Tables\Columns\TextColumn::make('town_hall')
+                    ->label('سطح تاون‌هال')
+                    ->badge()
+                    ->sortable()
+                    ->color(fn ($state): string => match (true) {
+                        $state >= 16 => 'danger',
+                        $state >= 14 => 'warning',
+                        $state >= 12 => 'info',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn ($state) => "TH {$state} 🏰"),
+
+                Tables\Columns\TextColumn::make('trophies')
+                    ->label('کاپ (Trophies)')
+                    ->numeric()
+                    ->sortable()
+                    ->badge()
+                    ->color('success')
+                    ->icon('heroicon-m-trophy'),
+
+                Tables\Columns\TextColumn::make('clan_name')
+                    ->label('کلن')
+                    ->searchable()
+                    ->badge()
+                    ->color('primary')
+                    ->default('بدون کلن'),
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('تاریخ اتصال')
+                    ->dateTime('Y/m/d H:i')
+                    ->sortable(),
             ])
             ->filters([
                 //
