@@ -78,6 +78,7 @@
                     <div v-else-if="activeTab === 'strategy'" class="space-y-6">
                         <MetaTierListHub />
                         <AiTacticalSimulator />
+                        <WarAttackVisualizer />
                         <DefenseAuditCard />
                         <WarPlannerHub
                             :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
@@ -263,6 +264,7 @@ import MetaTierListHub from "@/Components/Dashboard/MetaTierListHub.vue"
 import AiTacticalSimulator from "@/Components/Dashboard/AiTacticalSimulator.vue"
 import DefenseAuditCard from "@/Components/Dashboard/DefenseAuditCard.vue"
 import GamerAvatarShowcase from "@/Components/Dashboard/GamerAvatarShowcase.vue"
+import WarAttackVisualizer from "@/Components/Dashboard/WarAttackVisualizer.vue"
 
 export default {
     props: {
@@ -306,6 +308,7 @@ export default {
         AiTacticalSimulator,
         DefenseAuditCard,
         GamerAvatarShowcase,
+        WarAttackVisualizer,
 
         GameSwitcherBar,
         ClashRoyaleHub,

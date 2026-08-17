@@ -151,6 +151,14 @@ PROMPT;
     /**
      * ارسال پرسش به ایجنت با قابلیت انتخاب مود ایجنت + فال‌بک تاکتیکی هوشمند
      */
+    public function ask(User $user, string $question, string $agentMode = 'war_general'): string
+    {
+        return $this->answerUserQuestionWithAgent($user, $question, $agentMode);
+    }
+
+    /**
+     * ارسال پرسش به ایجنت با قابلیت انتخاب مود ایجنت + فال‌بک تاکتیکی هوشمند
+     */
     public function answerUserQuestionWithAgent(User $user, string $question, string $agentMode = 'war_general'): string
     {
         $system = $this->systemPrompt($agentMode);
