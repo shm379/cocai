@@ -1,17 +1,32 @@
 <template>
-    <div class="btn_groups">
-        <div
-            v-for="(hall, index) in townHalls"
-            :key="index"
-            class="hall-filter"
-            :class="{ selected: selectedHallLevel === hall.level }"
-            @click="filterByHall(hall.level)"
-        >
-            <img
-                :src="hall.img"
-                class="w-10 h-10 mb-1"
-            />
-            <span class="text-white text-sm font-semibold">{{ hall.label }}</span>
+    <div class="w-full">
+        <!-- نوار اسکرول افقی تاون‌هال‌ها -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar px-1" dir="rtl">
+            <button
+                type="button"
+                v-for="hall in townHalls"
+                :key="hall.level"
+                @click="filterByHall(hall.level)"
+                class="flex flex-col items-center justify-center p-2 rounded-2xl border transition-all duration-200 min-w-[68px] sm:min-w-[76px] shrink-0"
+                :class="selectedHallLevel === hall.level
+                    ? 'bg-amber-500/20 border-amber-500 shadow-lg shadow-amber-500/20 scale-105'
+                    : 'bg-gray-800/80 border-gray-700/80 hover:border-gray-600 text-gray-400 hover:text-white'"
+            >
+                <div class="w-10 h-10 flex items-center justify-center mb-1">
+                    <img
+                        :src="hall.img"
+                        :alt="hall.label"
+                        class="w-10 h-10 object-contain drop-shadow"
+                        @error="handleImgError"
+                    />
+                </div>
+                <span class="text-xs font-black" :class="selectedHallLevel === hall.level ? 'text-amber-300' : 'text-gray-300'">
+                    {{ hall.label }}
+                </span>
+                <span v-if="hall.level >= 16" class="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-red-500/30 text-red-300 border border-red-500/40 mt-0.5">
+                    متا
+                </span>
+            </button>
         </div>
     </div>
 </template>
@@ -22,9 +37,6 @@ import { ref } from 'vue';
 export default {
     name: 'TownHallFilter',
     props: {
-        /**
-         * سطح فعلی تاون‌هال انتخاب‌شده (مثلاً 10, 11, 12 ...)
-         */
         selectedHallLevel: {
             type: Number,
             default: null
@@ -32,73 +44,44 @@ export default {
     },
     emits: ['filter'],
     setup(props, { emit }) {
-        // آرایه تاون‌هال‌ها با آیکن و لیبل
         const townHalls = ref([
-            { level: 1, img: '/images/coc/units/Town_Hall1.png', label: 'TH 1' },
-            { level: 2, img: '/images/coc/units/Town_Hall2.png', label: 'TH 2' },
-            { level: 3, img: '/images/coc/units/Town_Hall3.png', label: 'TH 3' },
-            { level: 4, img: '/images/coc/units/Town_Hall4.png', label: 'TH 4' },
-            { level: 5, img: '/images/coc/units/Town_Hall5.png', label: 'TH 5' },
-            { level: 6, img: '/images/coc/units/Town_Hall6.png', label: 'TH 6' },
-            { level: 7, img: '/images/coc/units/Town_Hall7.png', label: 'TH 7' },
-            { level: 8, img: '/images/coc/units/Town_Hall8.png', label: 'TH 8' },
-            { level: 9, img: '/images/coc/units/Town_Hall9.png', label: 'TH 9' },
-            { level: 10, img: '/images/coc/units/Town_Hall10.png', label: 'TH 10' },
-            { level: 11, img: '/images/coc/units/Town_Hall11.png', label: 'TH 11' },
-            { level: 12, img: '/images/coc/units/Town_Hall12.png', label: 'TH 12' },
-            { level: 13, img: '/images/coc/units/Town_Hall13.png', label: 'TH 13' },
-            { level: 14, img: '/images/coc/units/Town_Hall14.png', label: 'TH 14' },
-            { level: 15, img: '/images/coc/units/Town_Hall15.png', label: 'TH 15' },
+            { level: 18, img: 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png', label: 'TH 18' },
+            { level: 17, img: 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png', label: 'TH 17' },
             { level: 16, img: '/images/coc/units/Town_Hall16.png', label: 'TH 16' },
-            { level: 17, img: '/images/coc/units/Town_Hall17.png', label: 'TH 17' },
+            { level: 15, img: '/images/coc/units/Town_Hall15.png', label: 'TH 15' },
+            { level: 14, img: '/images/coc/units/Town_Hall14.png', label: 'TH 14' },
+            { level: 13, img: '/images/coc/units/Town_Hall13.png', label: 'TH 13' },
+            { level: 12, img: '/images/coc/units/Town_Hall12.png', label: 'TH 12' },
+            { level: 11, img: '/images/coc/units/Town_Hall11.png', label: 'TH 11' },
+            { level: 10, img: '/images/coc/units/Town_Hall10.png', label: 'TH 10' },
+            { level: 9, img: '/images/coc/units/Town_Hall9.png', label: 'TH 9' },
+            { level: 8, img: '/images/coc/units/Town_Hall8.png', label: 'TH 8' },
+            { level: 7, img: '/images/coc/units/Town_Hall7.png', label: 'TH 7' },
         ]);
 
-        // کلیک روی یک تاون‌هال => ارسال رویداد "filter" + سطح انتخاب‌شده
         const filterByHall = (level) => {
             emit('filter', level);
         };
 
+        const handleImgError = (e) => {
+            e.target.src = 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png';
+        };
+
         return {
             townHalls,
-            filterByHall
+            filterByHall,
+            handleImgError
         };
     }
 };
 </script>
 
 <style scoped>
-.btn_groups {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
 }
-
-.hall-filter {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 10px;
-    padding: 10px;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.3s ease-in-out;
-    width: 70px; /* دلخواه */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.hall-filter:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
-}
-
-/* استایل انتخاب‌شده (می‌توانید رنگ دلخواه بگذارید) */
-.selected {
-    background: #3b82f6; /* آبی */
-    border-color: #3b82f6;
-    color: white;
-    transform: scale(1.08);
-    box-shadow: 0 4px 10px rgba(59,130,246,0.3);
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>
