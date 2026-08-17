@@ -1,28 +1,17 @@
 <template>
-    <nav class="fixed bottom-0 left-0 right-0 bg-gray-800 bg-opacity-90 shadow-inner z-50">
-        <div class="tab-buttons flex gap-2 sm:gap-4 m-6 justify-center">
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-t border-gray-700/80 shadow-2xl py-2 px-2 sm:px-4">
+        <div class="max-w-3xl mx-auto flex items-center justify-between sm:justify-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
             <button
-                v-for="tabName in tabs"
-                :key="tabName"
-                @click="setActiveTab(tabName)"
-                class="flex flex-col items-center px-4 sm:px-6 py-2 font-semibold rounded-full transition-colors duration-300
-               text-xs sm:text-sm
-               shadow focus:outline-none focus:ring-2 focus:ring-offset-2
-               hover:shadow-lg"
-                :class="[
-          activeTab === tabName
-            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-orange-400/50'
-            : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-        ]"
+                v-for="tab in tabs"
+                :key="tab.id"
+                @click="setActiveTab(tab.id)"
+                class="flex flex-col items-center justify-center py-1.5 px-2.5 sm:px-4 rounded-xl transition-all duration-200 shrink-0 text-center select-none"
+                :class="activeTab === tab.id
+                    ? 'bg-gradient-to-t from-amber-500/20 to-amber-500/10 text-amber-300 font-bold border border-amber-500/40 shadow-md'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'"
             >
-                <img
-                    v-if="tabIcons[tabName]"
-                    :src="tabIcons[tabName]"
-                    alt="Tab Icon"
-                    class="w-6 h-6 mb-1"
-                    style="background: #fff;border-radius: 50%"
-                />
-                <span>{{ tabLabels[tabName] }}</span>
+                <span class="text-lg sm:text-xl mb-0.5 leading-none">{{ tab.icon }}</span>
+                <span class="text-[10px] sm:text-xs tracking-tight whitespace-nowrap">{{ tab.label }}</span>
             </button>
         </div>
     </nav>
@@ -37,61 +26,36 @@ export default {
             default: 'profile'
         }
     },
-    // در Vue 3، بهتر است emits را هم صریح بنویسید:
     emits: ['update:activeTab'],
-
-    data(){
+    data() {
         return {
             tabs: [
-                'profile',
-                'troops',
-                'th_maps',
-                'bh_maps',
-                'favorites',
-                'achievements',
-                'progressChart',
-                'clanOverview',
-                'builderBase',
-                'assistant',
-                'strategy_lab',
-            ],
-            tabIcons: {
-                profile: '/images/icons/user.png',
-                troops: '/images/icons/trophy.png',
-                th_maps: '/images/icons/library.png',
-                bh_maps: '/images/icons/construction.png',
-                favorites: '/images/icons/achivement.png',
-                achievements: '/images/icons/achivement.png',
-                progressChart: '/images/icons/bar-chart.png',
-                clanOverview: '/images/icons/construction.png',
-                builderBase: '/images/icons/construction.png',
-                assistant: '/images/icons/construction.png',
-                strategy_lab: '/images/icons/construction.png',
-            },
-            tabLabels: {
-                profile: 'پروفایل',
-                troops: 'نیروها',
-                th_maps: 'نقشه های تاون هال',
-                bh_maps: 'نقشه های بیلدر هال',
-                favorites: 'مورد علاقه‌ها',
-                achievements: 'دستاوردها',
-                progressChart: 'نمودار تروفی',
-                clanOverview: 'وضعیت کلن',
-                builderBase: 'بیلدر بیس',
-                assistant: 'دستیار AI',
-                strategy_lab: 'آزمایشگاه'
-            }
+                { id: 'profile', label: 'پیشرفت', icon: '🏰' },
+                { id: 'strategy', label: 'وار و حمله', icon: '⚔️' },
+                { id: 'heroes', label: 'هیرو و پت', icon: '👑' },
+                { id: 'clanOverview', label: 'کلن و رید', icon: '🛡️' },
+                { id: 'troops', label: 'لَب و نیروها', icon: '🧪' },
+                { id: 'th_maps', label: 'نقشه‌ها', icon: '🗺️' },
+                { id: 'builderBase', label: 'بیلدر بیس', icon: '🔨' },
+                { id: 'assistant', label: 'مربی AI', icon: '🤖' },
+            ]
         }
     },
     methods: {
-        setActiveTab(tabName) {
-            if (tabName === 'strategy_lab') {
-                this.$inertia.get(route('dashboard.strategy-lab'));
-                return;
-            }
-            // به جای تغییر مستقیم prop، رویدادی emit می‌کنیم
-            this.$emit('update:activeTab', tabName)
+        setActiveTab(tabId) {
+            this.$emit('update:activeTab', tabId)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
         }
     }
 }
 </script>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+</style>

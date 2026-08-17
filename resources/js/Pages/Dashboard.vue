@@ -42,11 +42,49 @@
                 </div>
 
                 <!-- اگر player_tag ثبت شده، بقیه بخش‌ها را نمایش بده -->
-                <div v-else>
-                    <!-- تب ۱: پروفایل (Summary + تقویم + تحلیل‌های هوشمند) -->
-                    <div v-if="activeTab === 'profile'">
+                <div v-else class="space-y-6">
+
+                    <!-- تب ۱: خلاصه پیشرفت و تسک‌ها (Profile & Tasks) -->
+                    <div v-if="activeTab === 'profile'" class="space-y-6">
                         <ProfileSummary :gameProfile="gameProfile" />
                         <ProgressSummary :analysis="analysis" />
+                        <AccountSwitcher
+                            :currentTag="gameProfile?.tag || user.game_profile?.player_tag || ''"
+                            :currentName="gameProfile?.name || ''"
+                        />
+                        <QuickActions
+                            :has-profile="!!user.game_profile"
+                            @openCompare="showCompareModal = true"
+                        />
+                        <CalendarAndTask
+                            :calendar="calendar"
+                            :todayTask="todayTask"
+                            :saving="saving"
+                            @markTaskCompleted="markTaskCompleted"
+                        />
+                        <UpgradeTimeCalculator
+                            :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
+                        />
+                        <AchievementGemTracker
+                            v-if="analysis.achievements"
+                            :achievementsData="analysis.achievements"
+                        />
+                        <TrophiesChart :trophyData="trophyHistory" />
+                    </div>
+
+                    <!-- تب ۲: وار و استراتژی‌های حمله (War & Strategies) -->
+                    <div v-else-if="activeTab === 'strategy'" class="space-y-6">
+                        <WarPlannerHub
+                            :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
+                        />
+                        <MetaArmiesHub
+                            v-if="analysis.armies"
+                            :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
+                            :armies="analysis.armies"
+                        />
+                        <ArmyLinkGenerator />
+                        <SiegeMachineAdvisor />
+                        <DefenseMatrixAdvisor />
                         <WarReadinessCard
                             v-if="analysis.war_readiness"
                             :warReadiness="analysis.war_readiness"
@@ -59,130 +97,87 @@
                             :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
                             :currentTrophies="gameProfile.trophies || 0"
                         />
+                        <CwlMedalCalculator />
+                    </div>
+
+                    <!-- تب ۳: قهرمانان، پت‌ها و تجهیزات (Heroes & Equipment) -->
+                    <div v-else-if="activeTab === 'heroes'" class="space-y-6">
                         <HeroEquipmentSection
                             v-if="analysis.equipment"
                             :equipment="analysis.equipment"
                         />
-                <HeroEquipmentLoadouts />
-                <BlacksmithOrePlanner />
-                <AchievementGemTracker
-                    v-if="analysis.achievements"
-                    :achievementsData="analysis.achievements"
-                />
-                <MetaArmiesHub
-                    v-if="analysis.armies"
-                    :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
-                    :armies="analysis.armies"
-                />
-                <WarPlannerHub
-                    :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
-                />
-                <ArmyLinkGenerator />
-                <HeroPetPlanner />
-                <SiegeMachineAdvisor />
-                <DefenseMatrixAdvisor />
-                <CwlMedalCalculator />
-                <ClanCapitalPlanner />
-                <BuilderBaseProgressCard
-                    v-if="analysis.builder_base"
-                    :builderBase="analysis.builder_base"
-                />
-                <UpgradeTimeCalculator
-                    :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
-                />
-                <AccountSwitcher
-                    :currentTag="gameProfile?.tag || user.game_profile?.player_tag || ''"
-                    :currentName="gameProfile?.name || ''"
-                />
-                <QuickActions
-                    :has-profile="!!user.game_profile"
-                    @openCompare="showCompareModal = true"
-                />
-                <CalendarAndTask
-                    :calendar="calendar"
-                    :todayTask="todayTask"
-                    :saving="saving"
-                    @markTaskCompleted="markTaskCompleted"
-                />
-            </div>
+                        <HeroEquipmentLoadouts />
+                        <HeroPetPlanner />
+                        <BlacksmithOrePlanner />
+                    </div>
 
-            <div class="mb-6 p-4 bg-gray-800 rounded-xl shadow-lg dashboard-container"v-else-if="activeTab === 'th_maps'">
-                <TownHallFilter
-                    :selectedHallLevel="selectedHallLevel"
-                    @filter="applyHallFilter(0, $event)"
-                />
-                <MapList
-                    :maps="townHallMaps"
-                    pageKey="thPage"
-                    :favorite-map-ids="favoriteMapIds"
-                    @pageChange="changePage"
-                />
-            </div>
+                    <!-- تب ۴: وضعیت کلن و پایتخت (Clan & Capital) -->
+                    <div v-else-if="activeTab === 'clanOverview'" class="space-y-6">
+                        <ClanOverview
+                            :clan="gameProfile.clan"
+                            :playerRole="gameProfile.role"
+                            :capitalContributed="gameProfile.clanCapitalContributions || 0"
+                            :donations="gameProfile.donations || 0"
+                            :donationsReceived="gameProfile.donationsReceived || 0"
+                            :warStars="gameProfile.warStars || 0"
+                        />
+                        <ClanCapitalPlanner />
+                    </div>
 
-            <div class="mb-6 p-4 bg-gray-800 rounded-xl shadow-lg dashboard-container" v-else-if="activeTab === 'bh_maps'">
-                <BuilderHallFilter
-                    :selectedHallLevel="selectedHallLevel"
-                    @filter="applyHallFilter(1, $event)"
-                />
-                <MapList
-                    :maps="builderHallMaps"
-                    pageKey="bhPage"
-                    :favorite-map-ids="favoriteMapIds"
-                    @pageChange="changePage"
-                />
-            </div>
+                    <!-- تب ۵: نیروها و ارتش (Troops & Lab) -->
+                    <div v-else-if="activeTab === 'troops'" class="space-y-6">
+                        <TroopsSection :gameProfile="gameProfile" />
+                        <AchievementsList :achievements="gameProfile.achievements" />
+                    </div>
 
-            <!-- تب علاقه‌مندی‌ها -->
-            <div v-else-if="activeTab === 'favorites'" class="mb-6 p-4 bg-gray-800 rounded-xl shadow-lg dashboard-container">
-                <h2 class="text-lg font-bold text-white mb-4">نقشه‌های مورد علاقه</h2>
-                <MapList
-                    :maps="favoriteMaps"
-                    pageKey="favPage"
-                    :favorite-map-ids="favoriteMapIds"
-                    @pageChange="fetchFavorites"
-                />
-            </div>
+                    <!-- تب ۶: نقشه‌ها و بیس‌ها (Maps) -->
+                    <div v-else-if="activeTab === 'th_maps'" class="space-y-6">
+                        <div class="p-4 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
+                            <h3 class="text-base font-bold text-white mb-3">نقشه‌های تاون‌هال (Town Hall Bases)</h3>
+                            <TownHallFilter
+                                :selectedHallLevel="selectedHallLevel"
+                                @filter="applyHallFilter(0, $event)"
+                            />
+                            <MapList
+                                :maps="townHallMaps"
+                                pageKey="thPage"
+                                :favorite-map-ids="favoriteMapIds"
+                                @pageChange="changePage"
+                            />
+                        </div>
 
-            <!-- تب ۲: نیروها (TroopsSection) -->
-            <div v-else-if="activeTab === 'troops'">
-                <TroopsSection :gameProfile="gameProfile" />
-            </div>
+                        <div class="p-4 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
+                            <h3 class="text-base font-bold text-white mb-3">نقشه‌های بیلدرهال (Builder Hall Bases)</h3>
+                            <BuilderHallFilter
+                                :selectedHallLevel="selectedHallLevel"
+                                @filter="applyHallFilter(1, $event)"
+                            />
+                            <MapList
+                                :maps="builderHallMaps"
+                                pageKey="bhPage"
+                                :favorite-map-ids="favoriteMapIds"
+                                @pageChange="changePage"
+                            />
+                        </div>
+                    </div>
 
-            <!-- تب ۳: دستاوردها (AchievementsList) -->
-            <div v-else-if="activeTab === 'achievements'">
-                <AchievementsList :achievements="gameProfile.achievements" />
-            </div>
+                    <!-- تب ۷: بیلدر بیس (Builder Base) -->
+                    <div v-else-if="activeTab === 'builderBase'" class="space-y-6">
+                        <BuilderBaseProgressCard
+                            v-if="analysis.builder_base"
+                            :builderBase="analysis.builder_base"
+                        />
+                        <BuilderBase
+                            :builderHallLevel="gameProfile.builderHallLevel"
+                            :builderBaseTrophies="gameProfile.builderBaseTrophies"
+                            :builderTroops="builderTroops"
+                        />
+                    </div>
 
-            <!-- تب ۴: نمودار پیشرفت تروفی (TrophiesChart) -->
-            <div v-else-if="activeTab === 'progressChart'">
-                <TrophiesChart :trophyData="trophyHistory" />
-            </div>
-
-            <!-- تب ۵: کلن (ClanOverview) -->
-            <div v-else-if="activeTab === 'clanOverview'">
-                <ClanOverview
-                    :clan="gameProfile.clan"
-                    :playerRole="gameProfile.role"
-                    :capitalContributed="gameProfile.clanCapitalContributions || 0"
-                    :donations="gameProfile.donations || 0"
-                    :donationsReceived="gameProfile.donationsReceived || 0"
-                    :warStars="gameProfile.warStars || 0"
-                />
-            </div>
-
-            <!-- تب ۶: بیلدر بیس (BuilderBase) -->
-            <div v-else-if="activeTab === 'builderBase'">
-                <BuilderBase
-                    :builderHallLevel="gameProfile.builderHallLevel"
-                    :builderBaseTrophies="gameProfile.builderBaseTrophies"
-                    :builderTroops="builderTroops"
-                />
-            </div>
-
-            <!-- تب ۷: دستیار هوش مصنوعی (AI Assistant) -->
-            <div v-else-if="activeTab === 'assistant'">
-                <AiAssistant :gameProfile="gameProfile" />
-            </div>
+                    <!-- تب ۸: دستیار هوش مصنوعی (AI Coach) -->
+                    <div v-else-if="activeTab === 'assistant'" class="space-y-6">
+                        <AiAssistant :gameProfile="gameProfile" />
+                    </div>
 
                 </div>
             </template>
