@@ -75,6 +75,7 @@
 
                     <!-- تب ۲: وار و استراتژی‌های حمله (War & Strategies) -->
                     <div v-else-if="activeTab === 'strategy'" class="space-y-6">
+                        <MetaTierListHub />
                         <WarPlannerHub
                             :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
                         />
@@ -255,6 +256,7 @@ import MapList from "@/Components/Dashboard/MapList.vue"
 import TownHallFilter from "@/Components/Dashboard/TownHallFilter.vue"
 import BuilderHallFilter from "@/Components/Dashboard/BuilderHallFilter.vue"
 import SubscriptionUpgradeModal from "@/Components/Dashboard/SubscriptionUpgradeModal.vue"
+import MetaTierListHub from "@/Components/Dashboard/MetaTierListHub.vue"
 
 export default {
     props: {
@@ -294,6 +296,7 @@ export default {
         TownHallFilter,
         BuilderHallFilter,
         SubscriptionUpgradeModal,
+        MetaTierListHub,
 
         GameSwitcherBar,
         ClashRoyaleHub,

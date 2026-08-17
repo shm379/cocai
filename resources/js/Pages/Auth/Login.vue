@@ -83,6 +83,21 @@ const submitRegister = () => {
             {{ status }}
         </div>
 
+        <!-- ورود با گیم سیتی (GameCity SSO) -->
+        <div class="mb-5">
+            <a
+                href="/auth/gamecity/redirect"
+                class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-purple-500/25 transition duration-200 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 border border-purple-400/30"
+            >
+                <span class="text-lg">🎮</span>
+                <span>ورود یکپارچه با حساب کاربری گیم سیتی</span>
+            </a>
+            <div class="relative flex items-center justify-center my-4">
+                <div class="border-t border-gray-700/80 w-full"></div>
+                <span class="bg-gray-900 px-3 text-[11px] text-gray-400 font-bold shrink-0">یا ادامه با اطلاعات حساب CoCAI</span>
+            </div>
+        </div>
+
         <!-- ================= ۱) فرم ورود ================= -->
         <form v-if="mode === 'login'" @submit.prevent="submitLogin" class="space-y-4">
             <div>

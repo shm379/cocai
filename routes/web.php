@@ -65,6 +65,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/subscription/checkout', [\App\Http\Controllers\PaymentController::class, 'checkout'])
         ->name('subscription.checkout');
 
+    // ورود یکپارچه با گیم سیتی (GameCity SSO & CRM Sync)
+    Route::get('/auth/gamecity/redirect', [\App\Http\Controllers\GameCityAuthController::class, 'redirect'])
+        ->name('auth.gamecity.redirect');
+    Route::match(['get', 'post'], '/auth/gamecity/callback', [\App\Http\Controllers\GameCityAuthController::class, 'callback'])
+        ->name('auth.gamecity.callback');
+
+    // ای‌پی‌آی ترکیب‌ها و تیرلیست متای برتر (Winning Meta & Tactics)
+    Route::get('/api/meta-tier-items', function () {
+        $items = \App\Models\MetaTierItem::where('is_featured', true)
+            ->orderBy('tier')
+            ->get();
+        return response()->json(['ok' => true, 'items' => $items]);
+    })->name('api.meta-tier-items');
+
     // صفحه آزمایشگاه استراتژی
     Route::get('/dashboard/strategy-lab', [StrategyLabController::class, 'index'])
         ->name('dashboard.strategy-lab');
