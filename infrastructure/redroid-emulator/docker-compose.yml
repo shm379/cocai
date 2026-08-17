@@ -1,0 +1,29 @@
+version: '3'
+services:
+  redroid_worker_1:
+    image: redroid/redroid:11.0.0-latest
+    privileged: true
+    volumes:
+      - ./data_worker_1:/data
+    ports:
+      - "5555:5555" # پورت ADB
+    command:
+      - androidboot.redroid_width=1080
+      - androidboot.redroid_height=2400
+      - androidboot.redroid_dpi=480
+      - androidboot.redroid_fps=30
+      - androidboot.redroid_gpu_mode=guest
+
+  redroid_worker_2:
+    image: redroid/redroid:11.0.0-latest
+    privileged: true
+    volumes:
+      - ./data_worker_2:/data
+    ports:
+      - "5556:5555"
+    command:
+      - androidboot.redroid_width=1080
+      - androidboot.redroid_height=2400
+      - androidboot.redroid_dpi=480
+      - androidboot.redroid_fps=30
+      - androidboot.redroid_gpu_mode=guest
