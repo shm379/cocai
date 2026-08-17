@@ -109,6 +109,7 @@
 
                     <!-- تب ۳: قهرمانان، پت‌ها و تجهیزات (Heroes & Equipment) -->
                     <div v-else-if="activeTab === 'heroes'" class="space-y-6">
+                        <EquipmentMatrixHub />
                         <HeroEquipmentSection
                             v-if="analysis.equipment"
                             :equipment="analysis.equipment"
@@ -267,6 +268,7 @@ import DefenseAuditCard from "@/Components/Dashboard/DefenseAuditCard.vue"
 import GamerAvatarShowcase from "@/Components/Dashboard/GamerAvatarShowcase.vue"
 import WarAttackVisualizer from "@/Components/Dashboard/WarAttackVisualizer.vue"
 import CwlStrategyHub from "@/Components/Dashboard/CwlStrategyHub.vue"
+import EquipmentMatrixHub from "@/Components/Dashboard/EquipmentMatrixHub.vue"
 
 export default {
     props: {
@@ -312,6 +314,7 @@ export default {
         GamerAvatarShowcase,
         WarAttackVisualizer,
         CwlStrategyHub,
+        EquipmentMatrixHub,
 
         GameSwitcherBar,
         ClashRoyaleHub,
