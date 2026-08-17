@@ -74,6 +74,10 @@
                     :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
                     :armies="analysis.armies"
                 />
+                <WarPlannerHub
+                    :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
+                />
+                <DefenseMatrixAdvisor />
                 <BuilderBaseProgressCard
                     v-if="analysis.builder_base"
                     :builderBase="analysis.builder_base"
@@ -226,6 +230,8 @@ import HeroEquipmentLoadouts from "@/Components/Dashboard/HeroEquipmentLoadouts.
 import BlacksmithOrePlanner from "@/Components/Dashboard/BlacksmithOrePlanner.vue"
 import AchievementGemTracker from "@/Components/Dashboard/AchievementGemTracker.vue"
 import MetaArmiesHub from "@/Components/Dashboard/MetaArmiesHub.vue"
+import DefenseMatrixAdvisor from "@/Components/Dashboard/DefenseMatrixAdvisor.vue"
+import WarPlannerHub from "@/Components/Dashboard/WarPlannerHub.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
@@ -296,6 +302,8 @@ export default {
         BlacksmithOrePlanner,
         AchievementGemTracker,
         MetaArmiesHub,
+        DefenseMatrixAdvisor,
+        WarPlannerHub,
         BuilderBaseProgressCard,
         UpgradeTimeCalculator,
         PlayerComparisonModal,
