@@ -22,9 +22,32 @@ class AndroidCompanionController extends Controller
         }
 
         $options = $request->all();
+        
+        // ذخیره اسکرین‌شات زنده در کش برای نمایش در داشبورد
+        if (!empty($options['image_base64'])) {
+            \Illuminate\Support\Facades\Cache::put('latest_android_screen_' . $user->id, $options['image_base64'], 60);
+        }
+
         $macro = $this->androidService->generateTouchMacro($user, $options);
 
         return response()->json($macro);
+    }
+
+    /**
+     * دریافت آخرین اسکرین‌شات لایو از بازی برای نمایش در HUD
+     */
+    public function getLatestScreenshot()
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return response()->json(['ok' => false]);
+        }
+        
+        $base64 = \Illuminate\Support\Facades\Cache::get('latest_android_screen_' . $user->id);
+        return response()->json([
+            'ok' => true,
+            'image' => $base64 ? 'data:image/png;base64,' . $base64 : null
+        ]);
     }
 
     /**

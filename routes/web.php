@@ -92,6 +92,8 @@ Route::middleware('auth')->group(function () {
     // پلن اتک خودکار و دانلود ایجنت اندروید (Android In-Game Auto-Attack Bot)
     Route::post('/api/android/generate-macro', [\App\Http\Controllers\AndroidCompanionController::class, 'generateMacro'])
         ->name('android.generate-macro');
+    Route::get('/api/android/latest-screenshot', [\App\Http\Controllers\AndroidCompanionController::class, 'getLatestScreenshot'])
+        ->name('android.latest-screenshot');
     Route::get('/downloads/cocai-android/cocai-android-agent.py', [\App\Http\Controllers\AndroidCompanionController::class, 'downloadAgentScript'])
         ->name('android.download-agent');
 

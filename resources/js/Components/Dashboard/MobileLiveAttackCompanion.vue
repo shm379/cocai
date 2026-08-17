@@ -124,6 +124,14 @@
                 </div>
             </div>
 
+            <!-- نمایش زنده اسکرین‌شات از گوشی -->
+            <div v-if="liveScreenshot" class="relative rounded-2xl overflow-hidden border-2 border-emerald-500/50 shadow-xl shadow-emerald-500/10">
+                <div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse z-10 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 bg-white rounded-full"></span> LIVE
+                </div>
+                <img :src="liveScreenshot" alt="Live Game Screen" class="w-full h-auto object-cover max-h-64 opacity-90" />
+            </div>
+
             <!-- راهنمای فوری اقدام فعلی (Active Action Card) -->
             <div
                 v-if="currentStep"
@@ -180,6 +188,8 @@ export default {
             timerRunning: false,
             secondsLeft: 180,
             timerInterval: null,
+            screenshotInterval: null,
+            liveScreenshot: null,
             scoutData: {
                 target_th: 16,
                 sweeper_facing: 'north_east',
@@ -207,6 +217,13 @@ export default {
             handler() {
                 this.fetchHudPlan();
             }
+        },
+        isHudActive(newVal) {
+            if (newVal) {
+                this.startScreenshotPolling();
+            } else {
+                this.stopScreenshotPolling();
+            }
         }
     },
     mounted() {
@@ -214,6 +231,7 @@ export default {
     },
     beforeUnmount() {
         if (this.timerInterval) clearInterval(this.timerInterval);
+        this.stopScreenshotPolling();
     },
     methods: {
         async fetchHudPlan() {
@@ -265,6 +283,29 @@ export default {
                     this.activeStepIndex = i;
                     break;
                 }
+            }
+        },
+        startScreenshotPolling() {
+            this.fetchScreenshot();
+            this.screenshotInterval = setInterval(() => {
+                this.fetchScreenshot();
+            }, 3000); // 3 seconds
+        },
+        stopScreenshotPolling() {
+            if (this.screenshotInterval) {
+                clearInterval(this.screenshotInterval);
+                this.screenshotInterval = null;
+            }
+        },
+        async fetchScreenshot() {
+            try {
+                const res = await fetch('/api/android/latest-screenshot');
+                const data = await res.json();
+                if (data.ok && data.image) {
+                    this.liveScreenshot = data.image;
+                }
+            } catch (e) {
+                console.error("Failed to fetch live screenshot", e);
             }
         }
     }
