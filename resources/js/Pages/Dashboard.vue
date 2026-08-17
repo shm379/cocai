@@ -50,6 +50,11 @@
                     v-if="analysis.achievements"
                     :achievementsData="analysis.achievements"
                 />
+                <MetaArmiesHub
+                    v-if="analysis.armies"
+                    :townHall="analysis.town_hall || gameProfile.townHallLevel || 1"
+                    :armies="analysis.armies"
+                />
                 <BuilderBaseProgressCard
                     v-if="analysis.builder_base"
                     :builderBase="analysis.builder_base"
@@ -181,6 +186,7 @@ import HeroEquipmentSection from "@/Components/Dashboard/HeroEquipmentSection.vu
 import HeroEquipmentLoadouts from "@/Components/Dashboard/HeroEquipmentLoadouts.vue"
 import BlacksmithOrePlanner from "@/Components/Dashboard/BlacksmithOrePlanner.vue"
 import AchievementGemTracker from "@/Components/Dashboard/AchievementGemTracker.vue"
+import MetaArmiesHub from "@/Components/Dashboard/MetaArmiesHub.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
@@ -243,6 +249,7 @@ export default {
         HeroEquipmentLoadouts,
         BlacksmithOrePlanner,
         AchievementGemTracker,
+        MetaArmiesHub,
         BuilderBaseProgressCard,
         UpgradeTimeCalculator,
         PlayerComparisonModal,

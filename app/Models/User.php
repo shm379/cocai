@@ -100,6 +100,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Map::class, 'map_favorites')->withTimestamps();
     }
 
+    public function strategyLabSessions()
+    {
+        return $this->hasMany(StrategyLabSession::class);
+    }
+
     /**
      * Increment task completion streak based on calendar days.
      * Resets if last completion was before yesterday.

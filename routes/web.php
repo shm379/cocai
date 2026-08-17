@@ -4,6 +4,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StrategyLabController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
@@ -57,6 +58,20 @@ Route::middleware('auth')->group(function () {
         ->name('dashboard.progress');
     Route::get('/api/progress', [\App\Http\Controllers\ProgressController::class, 'api'])
         ->name('progress.api');
+
+    // صفحه آزمایشگاه استراتژی
+    Route::get('/dashboard/strategy-lab', [StrategyLabController::class, 'index'])
+        ->name('dashboard.strategy-lab');
+    Route::post('/api/strategy-lab/sessions', [StrategyLabController::class, 'store'])
+        ->name('strategy-lab.store');
+    Route::post('/api/strategy-lab/quick-analyze', [StrategyLabController::class, 'quickAnalyze'])
+        ->name('strategy-lab.quick-analyze');
+    Route::get('/api/strategy-lab/sessions/{session}', [StrategyLabController::class, 'show'])
+        ->name('strategy-lab.show');
+    Route::post('/api/strategy-lab/sessions/{session}/analyze', [StrategyLabController::class, 'analyze'])
+        ->name('strategy-lab.analyze');
+    Route::delete('/api/strategy-lab/sessions/{session}', [StrategyLabController::class, 'destroy'])
+        ->name('strategy-lab.destroy');
 
     // 5) صفحه وظیفهٔ امروز
     Route::get('/dashboard/today-task', function () {
