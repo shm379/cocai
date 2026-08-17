@@ -41,6 +41,7 @@ class ProgressionService
         $builderBase = $this->analyzeBuilderBase($playerData);
         $farming = $this->analyzeFarming($th, (int) ($playerData['trophies'] ?? 0));
         $clanActivity = $this->analyzeClanActivity($playerData);
+        $achievements = $this->analyzeAchievements($playerData);
 
         return [
             'ok' => true,
@@ -59,6 +60,7 @@ class ProgressionService
             'builder_base' => $builderBase,
             'farming' => $farming,
             'clan_activity' => $clanActivity,
+            'achievements' => $achievements,
             'rush' => $rush,
             'upgrade_queue' => $queue,
             'armies' => $armies,
@@ -568,6 +570,66 @@ class ProgressionService
             'war_stars' => $warStars,
             'war_rating_fa' => $warRating,
             'is_generous' => $ratio >= 1.0 || $donations >= 1000,
+        ];
+    }
+
+    /**
+     * تحلیل دستاوردها و شکار جم‌های آماده دریافت (Gem Hunter & Builder Goals)
+     */
+    private function analyzeAchievements(array $playerData): array
+    {
+        $achievements = $playerData['achievements'] ?? [];
+        $uncompleted = [];
+        $totalClaimableGems = 0;
+
+        $gemValues = [
+            'Sweet Victory!' => ['gems' => 450, 'name_fa' => 'پیروزی شیرین (رسیدن به کاپ ۱۲۵۰)'],
+            'League All-Star' => ['gems' => 2000, 'name_fa' => 'ستاره لیگ (رسیدن به لیگ چمپیون)'],
+            'War Hero' => ['gems' => 1000, 'name_fa' => 'قهرمان وار (۱۰۰۰ ستاره وار)'],
+            'Un-Build It' => ['gems' => 100, 'name_fa' => 'تخریب بیلدرهات در بیلدر بیس'],
+            'Champion Builder' => ['gems' => 1000, 'name_fa' => 'قهرمان سازنده (۳۰۰۰ کاپ بیلدر بیس)'],
+            'Treasurer' => ['gems' => 100, 'name_fa' => 'خزانه‌دار کلن (جمع‌آوری گلد کلن کستل)'],
+            'Aggressive Exterminator' => ['gems' => 100, 'name_fa' => 'شکارچی سازه‌ها'],
+            'Games Champion' => ['gems' => 250, 'name_fa' => 'قهرمان کلن گیمز (۵۰,۰۰۰ امتیاز)'],
+            'Keep Your Village Safe' => ['gems' => 100, 'name_fa' => 'اتصال به سوپرسل آیدی'],
+            'Shattered Monstrosities' => ['gems' => 150, 'name_fa' => 'نابودکننده مونولیت'],
+            'Counter-offensive' => ['gems' => 150, 'name_fa' => 'نابودکننده اسپل تاور'],
+        ];
+
+        foreach ($achievements as $ach) {
+            $name = $ach['name'] ?? '';
+            $stars = (int) ($ach['stars'] ?? 0);
+            $value = (int) ($ach['value'] ?? 0);
+            $target = (int) ($ach['target'] ?? 0);
+            $info = $ach['info'] ?? '';
+
+            if ($stars < 3 && $target > 0) {
+                $reward = $gemValues[$name]['gems'] ?? ($stars === 0 ? 50 : ($stars === 1 ? 20 : 10));
+                $nameFa = $gemValues[$name]['name_fa'] ?? $name;
+                $percent = (int) min(100, round(($value / $target) * 100));
+
+                $totalClaimableGems += $reward;
+
+                $uncompleted[] = [
+                    'name' => $name,
+                    'name_fa' => $nameFa,
+                    'stars' => $stars,
+                    'value' => $value,
+                    'target' => $target,
+                    'percent' => $percent,
+                    'info' => $info,
+                    'gems_reward' => $reward,
+                ];
+            }
+        }
+
+        // مرتب‌سازی بر اساس بالاترین درصد تکمیل
+        usort($uncompleted, fn ($a, $b) => ($b['percent'] * 10 + $b['gems_reward']) <=> ($a['percent'] * 10 + $a['gems_reward']));
+
+        return [
+            'total_claimable_gems' => $totalClaimableGems,
+            'top_uncompleted' => array_slice($uncompleted, 0, 6),
+            'all_uncompleted_count' => count($uncompleted),
         ];
     }
 

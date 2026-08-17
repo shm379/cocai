@@ -45,6 +45,11 @@
                     :equipment="analysis.equipment"
                 />
                 <HeroEquipmentLoadouts />
+                <BlacksmithOrePlanner />
+                <AchievementGemTracker
+                    v-if="analysis.achievements"
+                    :achievementsData="analysis.achievements"
+                />
                 <BuilderBaseProgressCard
                     v-if="analysis.builder_base"
                     :builderBase="analysis.builder_base"
@@ -174,6 +179,8 @@ import WarReadinessCard from "@/Components/Dashboard/WarReadinessCard.vue"
 import FarmingAdvisorCard from "@/Components/Dashboard/FarmingAdvisorCard.vue"
 import HeroEquipmentSection from "@/Components/Dashboard/HeroEquipmentSection.vue"
 import HeroEquipmentLoadouts from "@/Components/Dashboard/HeroEquipmentLoadouts.vue"
+import BlacksmithOrePlanner from "@/Components/Dashboard/BlacksmithOrePlanner.vue"
+import AchievementGemTracker from "@/Components/Dashboard/AchievementGemTracker.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
@@ -234,6 +241,8 @@ export default {
         FarmingAdvisorCard,
         HeroEquipmentSection,
         HeroEquipmentLoadouts,
+        BlacksmithOrePlanner,
+        AchievementGemTracker,
         BuilderBaseProgressCard,
         UpgradeTimeCalculator,
         PlayerComparisonModal,
