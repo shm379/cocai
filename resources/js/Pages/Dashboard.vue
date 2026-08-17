@@ -47,6 +47,7 @@
                     <!-- تب ۱: خلاصه پیشرفت و تسک‌ها (Profile & Tasks) -->
                     <div v-if="activeTab === 'profile'" class="space-y-6">
                         <SubscriptionUpgradeModal />
+                        <GamerAvatarShowcase :gameProfile="gameProfile" :taskStreak="taskStreak || 1" />
                         <ProfileSummary :gameProfile="gameProfile" />
                         <ProgressSummary :analysis="analysis" />
                         <AccountSwitcher
@@ -76,6 +77,8 @@
                     <!-- تب ۲: وار و استراتژی‌های حمله (War & Strategies) -->
                     <div v-else-if="activeTab === 'strategy'" class="space-y-6">
                         <MetaTierListHub />
+                        <AiTacticalSimulator />
+                        <DefenseAuditCard />
                         <WarPlannerHub
                             :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
                         />
@@ -257,6 +260,9 @@ import TownHallFilter from "@/Components/Dashboard/TownHallFilter.vue"
 import BuilderHallFilter from "@/Components/Dashboard/BuilderHallFilter.vue"
 import SubscriptionUpgradeModal from "@/Components/Dashboard/SubscriptionUpgradeModal.vue"
 import MetaTierListHub from "@/Components/Dashboard/MetaTierListHub.vue"
+import AiTacticalSimulator from "@/Components/Dashboard/AiTacticalSimulator.vue"
+import DefenseAuditCard from "@/Components/Dashboard/DefenseAuditCard.vue"
+import GamerAvatarShowcase from "@/Components/Dashboard/GamerAvatarShowcase.vue"
 
 export default {
     props: {
@@ -297,6 +303,9 @@ export default {
         BuilderHallFilter,
         SubscriptionUpgradeModal,
         MetaTierListHub,
+        AiTacticalSimulator,
+        DefenseAuditCard,
+        GamerAvatarShowcase,
 
         GameSwitcherBar,
         ClashRoyaleHub,

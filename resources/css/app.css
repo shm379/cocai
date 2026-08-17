@@ -14,9 +14,9 @@
         background-color: #0b0f19;
         color: #f1f5f9;
         background-image: 
-            radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.05) 0px, transparent 50%),
-            radial-gradient(at 100% 100%, rgba(220, 38, 38, 0.05) 0px, transparent 50%),
-            radial-gradient(at 50% 50%, rgba(30, 41, 59, 0.5) 0px, transparent 100%);
+            radial-gradient(at 0% 0%, rgba(245, 158, 11, 0.08) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(220, 38, 38, 0.08) 0px, transparent 50%),
+            radial-gradient(at 50% 50%, rgba(30, 41, 59, 0.6) 0px, transparent 100%);
         background-attachment: fixed;
         overflow-x: hidden;
     }
@@ -38,22 +38,98 @@
     }
 }
 
+/* ==========================================================================
+   🎮 انیمیشن‌ها و افکت‌های گیمینگ پویا (Gaming Animations & Visual FX)
+   ========================================================================== */
+
+@keyframes float-slow {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-6px) rotate(0.5deg);
+    }
+}
+
+@keyframes pulse-glow-gold {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.25), inset 0 0 10px rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(245, 158, 11, 0.5), inset 0 0 15px rgba(245, 158, 11, 0.25);
+        border-color: rgba(245, 158, 11, 0.8);
+    }
+}
+
+@keyframes pulse-glow-purple {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
+        border-color: rgba(168, 85, 247, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.55);
+        border-color: rgba(168, 85, 247, 0.8);
+    }
+}
+
+@keyframes shimmer-sweep {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-float {
+    animation: float-slow 4s ease-in-out infinite;
+}
+
+.animate-glow-gold {
+    animation: pulse-glow-gold 3s infinite ease-in-out;
+}
+
+.animate-glow-purple {
+    animation: pulse-glow-purple 3s infinite ease-in-out;
+}
+
+/* افکت‌های شاین متالیک روی دکمه‌ها و نشان‌ها */
+.shimmer-gold {
+    background: linear-gradient(90deg, rgba(245,158,11,0) 0%, rgba(255,255,255,0.4) 50%, rgba(245,158,11,0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer-sweep 2.5s infinite;
+}
+
+/* فریم‌های آواتار قهرمانان */
+.hero-frame-gold {
+    border: 2px solid #f59e0b;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-frame-gold:hover {
+    transform: scale(1.06) rotate(-1deg);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+}
+
 /* افکت‌های بازی و کارت‌های گیمینگ */
 .game-card {
     background: rgba(30, 41, 59, 0.75);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(245, 158, 11, 0.15);
-    border-radius: 1rem;
+    border-radius: 1.25rem;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
-    transition: all 0.2s ease-in-out;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .game-card:hover {
-    border-color: rgba(245, 158, 11, 0.4);
-    box-shadow: 0 15px 30px -5px rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.45);
+    box-shadow: 0 15px 30px -5px rgba(245, 158, 11, 0.2);
+    transform: translateY(-2px);
 }
 
-/* دکمه‌های با حس بازی سوپرسل */
+/* دکمه‌های با حس ۳ بعدی بازی سوپرسل */
 .game-btn-gold {
     background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
     color: #0f172a;
