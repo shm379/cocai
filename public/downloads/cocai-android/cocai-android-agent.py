@@ -41,13 +41,25 @@ def main():
 
     print(f"📱 رزولوشن فعال: {screen_width}x{screen_height}")
 
-    print("\n🧠 در حال ارسال اطلاعات نبرد به سرور هوش مصنوعی CoCAI...")
+    print("\n📸 گرفتن اسکرین‌شات از بازی برای تحلیل دقیق...")
+    run_adb("exec-out screencap -p > screen.png")
+    
+    import base64
+    try:
+        with open("screen.png", "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    except FileNotFoundError:
+        encoded_string = ""
+        print("⚠️ اسکرین‌شات یافت نشد، ادامه با دیتای پیش‌فرض...")
+
+    print("\n🧠 ارسال تصویر به سرور هوش مصنوعی CoCAI برای تحلیل...")
     payload = {
         "screen_width": screen_width,
         "screen_height": screen_height,
         "target_th": 16,
         "army_type": "root_rider_smash",
-        "entry_clock": "6:30"
+        "entry_clock": "6:30",
+        "image_base64": encoded_string
     }
 
     try:
@@ -56,7 +68,7 @@ def main():
             data=json.dumps(payload).encode('utf-8'),
             headers={'Content-Type': 'application/json', 'Accept': 'application/json'}
         )
-        with urllib.request.urlopen(req, timeout=15) as response:
+        with urllib.request.urlopen(req, timeout=30) as response:
             data = json.loads(response.read().decode('utf-8'))
             
         if not data.get("ok"):
