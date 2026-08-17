@@ -111,6 +111,40 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(Map::class, 'map_favorites')->withTimestamps();
     }
 
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function activeSubscription(): ?Subscription
+    {
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->latest('ends_at')
+            ->first();
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        // ادمین‌ها همیشه دسترسی نامحدود دارند
+        if ($this->is_admin) {
+            return true;
+        }
+
+        return $this->activeSubscription() !== null;
+    }
+
+    public function subscriptionDaysLeft(): int
+    {
+        if ($this->is_admin) {
+            return 999;
+        }
+
+        $sub = $this->activeSubscription();
+        return $sub ? $sub->daysRemaining() : 0;
+    }
+
     public function strategyLabSessions()
     {
         return $this->hasMany(StrategyLabSession::class);

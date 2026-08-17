@@ -7,26 +7,30 @@ use Illuminate\Http\Request;
 
 class ChatbotController extends Controller
 {
-    protected $chatbotService;
-
-    public function __construct(ChatbotService $chatbotService)
+    public function __construct(protected ChatbotService $chatbotService)
     {
-        $this->chatbotService = $chatbotService;
     }
 
     public function query(Request $request)
     {
-        // اعتبارسنجی ورودی (فرانت‌اند فیلد `question` را می‌فرستد)
         $validated = $request->validate([
             'question' => 'required|string|max:2000',
+            'agent_mode' => 'nullable|string|in:war_general,progression_coach,base_architect,farming_master,supercell_pro',
         ]);
 
         $user = auth()->user();
+        $agentMode = $validated['agent_mode'] ?? 'war_general';
 
-        // پاسخ grounded با بلوک واقعیتِ محاسبه‌شده از دادهٔ واقعی بازیکن
-        $response = $this->chatbotService->answerUserQuestion($user, $validated['question']);
+        $response = $this->chatbotService->answerUserQuestionWithAgent(
+            $user,
+            $validated['question'],
+            $agentMode
+        );
 
-        // پاسخ را به کاربر بازگردانید
-        return response()->json(['answer' => $response]);
+        return response()->json([
+            'ok' => true,
+            'agent_mode' => $agentMode,
+            'answer' => $response,
+        ]);
     }
 }

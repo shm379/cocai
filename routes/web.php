@@ -59,6 +59,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/progress', [\App\Http\Controllers\ProgressController::class, 'api'])
         ->name('progress.api');
 
+    // سیستم اشتراک و پرداخت (زیبال، پی‌پینگ، زرین‌پال)
+    Route::get('/api/subscription/plans', [\App\Http\Controllers\PaymentController::class, 'plans'])
+        ->name('subscription.plans');
+    Route::post('/subscription/checkout', [\App\Http\Controllers\PaymentController::class, 'checkout'])
+        ->name('subscription.checkout');
+
     // صفحه آزمایشگاه استراتژی
     Route::get('/dashboard/strategy-lab', [StrategyLabController::class, 'index'])
         ->name('dashboard.strategy-lab');
@@ -137,5 +143,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/maps/{map}/favorite', [MapController::class, 'toggleFavorite'])->name('maps.favorite');
     Route::get('/maps/favorites', [MapController::class, 'favorites'])->name('maps.favorites');
 });
+
+// کال‌بک پرداخت درگاه‌ها (زیبال، پی‌پینگ، زرین‌پال)
+Route::match(['get', 'post'], '/subscription/callback/{gateway}', [\App\Http\Controllers\PaymentController::class, 'callback'])
+    ->name('subscription.callback');
 
 require __DIR__.'/auth.php';

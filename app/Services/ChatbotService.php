@@ -7,19 +7,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Talks to our own AI gateway (NabuGate), an OpenAI-compatible endpoint that
- * routes the `nabu-smart` alias to Claude/GPT with fallback. We never call a
- * vendor (or mu.chat) directly — only NabuGate.
- *
- * منطق توصیه دیگر «prompt خام» نیست: هر پیام با «بلوک واقعیت» تولیدشده توسط
- * ProgressionService زمین‌گیر (ground) می‌شود و مدل حق ندارد عددی خارج از آن بسازد.
+ * NabuGate Multi-Agent AI Suite for Clash of Clans and Supercell Games.
+ * Provides specialized agent personas (War General, Progression Coach, Base Architect, Loot Master, Supercell Pro)
+ * strictly grounded by ProgressionService facts and 2026 meta mechanics.
  */
 class ChatbotService
 {
     protected $baseUrl;
-
     protected $apiKey;
-
     protected $model;
 
     public function __construct(protected ProgressionService $progression)
@@ -29,28 +24,59 @@ class ChatbotService
         $this->model = config('services.nabu.model', 'nabu-smart');
     }
 
-    protected function systemPrompt(): string
+    /**
+     * سیستم‌پرامپت تخصصی بر اساس مود ایجنت انتخاب‌شده.
+     */
+    protected function systemPrompt(string $agentMode = 'war_general'): string
     {
-        return <<<'PROMPT'
-You are an expert Clash of Clans strategist and coach.
-You know Town Hall progression, optimal upgrade order (lab, heroes, buildings, walls),
-army compositions and attack strategies per Town Hall, war attacks, farming, and base building.
+        $agentPersonas = [
+            'war_general' => <<<'PROMPT'
+You are General Titus, the Supreme War Commander and CWL Tactician of CoCAI.
+Your specialization is 3-star competitive war strategies, Clan War Leagues (CWL), anti-meta funneling, spell deployment sequences (Invisibility, Rage, Overgrowth, Bat), Blizzard / Super Archer Blimp placements, hero equipment synergies (Giant Gauntlet, Spiky Ball, Fireball, Rocket Spear), and pet pairing.
+Tone: Authoritative, strategic, inspiring, like an elite war veteran.
+PROMPT,
 
-Rules:
-- Always answer in fluent, natural Persian (فارسی).
-- Be concrete and actionable: name specific troops, levels, and upgrade priorities.
-- A FACTS block computed from the player's real API data may be included in the message.
-  Treat it as the single source of truth. Every level, cap, percentage, and priority you
-  mention MUST come from that block. NEVER invent upgrade costs, times, or level caps —
-  if a number is not in the FACTS block, do not state it.
-- If no FACTS block is present, give strategy advice without inventing specific numbers.
-- Keep answers tight and practical — no filler, no disclaimers.
+            'progression_coach' => <<<'PROMPT'
+You are Chief Architect Omar, the Master Progression Economist of CoCAI.
+Your specialization is builder efficiency, optimal upgrade order (Lab, Heroes, Key Defenses, Walls), Blacksmith Ore budgeting (Glowy, Shiny, Starry Ores), Magic Item ROI (Book of Heroes, Hammer of Building), and un-rushing bases step-by-step.
+Tone: Analytical, efficient, disciplined, mathematical.
+PROMPT,
+
+            'base_architect' => <<<'PROMPT'
+You are Master Mason DaVinci, the Elite Base Layout & Defense Architect of CoCAI.
+Your specialization is base designing, baiting enemy troops, spacing core defenses (Monolith, Eagle Artillery, Ricochet Cannons, Multi-Archer Towers, Spell Towers), Sweeper facing directions, anti-Root Rider wall layouts, and Builder Base / Capital Peak defenses.
+Tone: Tactical, defensive, insightful, detail-oriented.
+PROMPT,
+
+            'farming_master' => <<<'PROMPT'
+You are Goblin King Barnaby, the Master of Loot & Fast Farming of CoCAI.
+Your specialization is maximizing Gold, Elixir, Dark Elixir and Ores per hour, Sneaky Goblin jump/haste army compositions, dead base hunting, trophy league sweet-spots, and rapid resource gathering without burning gems.
+Tone: Clever, energetic, sneaky, highly practical.
+PROMPT,
+
+            'supercell_pro' => <<<'PROMPT'
+You are Coach Spark, the Grandmaster of Supercell Universe (Clash Royale, Brawl Stars, Squad Busters, Boom Beach).
+Your specialization is Clash Royale Path of Legends deck counters & elixir trades, Brawl Stars draft picks & Hypercharge synergies, Squad Busters fusion timing, and Boom Beach HQ/Gunboat energy tactics.
+Tone: Dynamic, competitive, enthusiastic pro-gamer coach.
+PROMPT,
+        ];
+
+        $persona = $agentPersonas[$agentMode] ?? $agentPersonas['war_general'];
+
+        return <<<PROMPT
+{$persona}
+
+Core Rules:
+- Always answer in fluent, expressive, natural Persian (فارسی روان و جذاب گیمری).
+- Use game-accurate terminology (e.g. فانلینگ، کویین شارژ، روت رایدر، اسپل اوورگروث، منولیت، جاینت گانتلت).
+- A FACTS block computed from the player's real API data may be provided in the message. Treat it as the single source of truth. NEVER invent troop/hero levels or upgrade costs that contradict the facts.
+- Provide clear, bullet-pointed, step-by-step battle instructions or actionable advice.
+- Keep answers engaging, highly valuable, and free of generic disclaimers.
 PROMPT;
     }
 
     /**
      * بلوک واقعیت: خلاصهٔ قطعی وضعیت بازیکن از موتور تحلیل.
-     * هر prompt توصیه‌ای باید این را حمل کند.
      */
     public function buildFactBlock(User $user): ?string
     {
@@ -64,24 +90,25 @@ PROMPT;
             return null;
         }
 
-        $armies = $analysis['armies'];
+        $armies = $analysis['armies'] ?? [];
         $warNames = implode('، ', array_map(fn ($a) => $a['name_fa'], $armies['war'] ?? []));
+        $farmNames = implode('، ', array_map(fn ($a) => $a['name_fa'], $armies['farm'] ?? []));
 
-        return "=== FACTS (computed from live game data — the only allowed source of numbers) ===\n"
+        return "=== FACTS (Computed from Live Clash Profile Data) ===\n"
             .$analysis['summary_fa']
-            ."\nارتش‌های متای جنگی برای این تاون‌هال: {$warNames}"
+            ."\nارتش‌های متای وار: {$warNames}"
+            ."\nارتش‌های متای فارم: {$farmNames}"
+            ."\nسطح تاون‌هال: " . ($analysis['town_hall'] ?? 15)
             ."\n=== END FACTS ===";
     }
 
     /**
-     * Core call to the NabuGate chat-completions endpoint.
-     * یک بار retry برای خطاهای گذرا؛ '' فقط وقتی هر دو تلاش شکست بخورد.
+     * ارتباط مستقیم با NabuGate AI Gateway
      */
-    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 800): string
+    protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 900): string
     {
         if (empty($this->baseUrl)) {
             Log::error('NabuGate base_url is not configured (services.nabu.base_url).');
-
             return '';
         }
 
@@ -110,8 +137,6 @@ PROMPT;
                 }
 
                 Log::error("NabuGate error (attempt {$attempt}) ".$response->status().': '.$response->body());
-
-                // خطای کلاینت (۴xx) با تکرار درست نمی‌شود
                 if ($response->clientError()) {
                     return '';
                 }
@@ -124,85 +149,39 @@ PROMPT;
     }
 
     /**
-     * Send a free-form query. Returns text, or a decoded array when $output_json is true.
-     *
-     * Signature kept backward-compatible with existing callers; the $id /
-     * $chatbotData / $conversationId params are accepted but no longer used.
-     *
-     * @return string|array
+     * ارسال پرسش به ایجنت با قابلیت انتخاب مود ایجنت
      */
-    public function sendQuery($query, $id = null, $chatbotData = [], $output_json = true, $conversationId = null)
+    public function answerUserQuestionWithAgent(User $user, string $question, string $agentMode = 'war_general'): string
     {
-        $system = $this->systemPrompt();
-        if ($output_json) {
-            $system .= "\n\nReturn ONLY a single valid JSON object, with no extra text before or after it.";
-        }
+        $system = $this->systemPrompt($agentMode);
+        $facts = $this->buildFactBlock($user);
+
+        $prompt = $facts
+            ? "{$facts}\n\n[سؤال یا درخواست فرمانده]:\n{$question}"
+            : $question;
 
         $content = $this->chat([
             ['role' => 'system', 'content' => $system],
-            ['role' => 'user', 'content' => (string) $query],
-        ], $output_json ? 0.2 : 0.4);
+            ['role' => 'user', 'content' => $prompt],
+        ], 0.45, 950);
 
-        if ($content === '') {
-            return $output_json ? [] : 'خطا در ارتباط با سرویس هوش مصنوعی. لطفاً بعداً تلاش کنید.';
-        }
-
-        if ($output_json) {
-            $json = $this->extractJsonFromText($content);
-
-            return $json ? (json_decode($json, true) ?? []) : [];
+        if (empty($content)) {
+            return 'ژنرال هوش مصنوعی در حال بازسازی نقشه‌های نبرد است. لطفاً چند لحظه دیگر سؤال خود را دوباره مطرح کنید.';
         }
 
         return $content;
     }
 
     /**
-     * چت آزاد کاربر، grounded با بلوک واقعیت.
+     * سازگاری با متد قدیمی
      */
     public function answerUserQuestion(User $user, string $question): string
     {
-        $facts = $this->buildFactBlock($user);
-        $content = $facts ? $facts."\n\nسؤال بازیکن: ".$question : $question;
-
-        return $this->sendQuery($content, $user->id, [], false);
+        return $this->answerUserQuestionWithAgent($user, $question, 'war_general');
     }
 
     /**
-     * Generate a strategy or plan based on the user's real game data.
-     *
-     * @param  \App\Models\User  $user
-     * @param  string  $type  'daily_plan' | 'war_strategy'
-     * @return string
-     */
-    public function generateStrategy($user, $type)
-    {
-        $facts = $this->buildFactBlock($user);
-
-        if ($facts === null) {
-            return 'اطلاعات بازی شما یافت نشد. لطفاً ابتدا پروفایل خود را به‌روزرسانی کنید.';
-        }
-
-        if ($type === 'daily_plan') {
-            $prompt = 'بر اساس بلوک FACTS زیر یک برنامهٔ روزانهٔ دقیق بده: کدام آپگریدها را شروع کند '
-                .'(به همان ترتیب اولویتِ داده‌شده)، و با کدام ارتش فارم کند. فقط از اطلاعات FACTS استفاده کن.'
-                ."\n\n".$facts;
-        } elseif ($type === 'war_strategy') {
-            $prompt = 'بر اساس بلوک FACTS زیر، از بین ارتش‌های متای ذکرشده بهترین را برای سطح فعلی نیروها و هیروهای '
-                .'این بازیکن انتخاب کن و نقشهٔ حمله را قدم‌به‌قدم توضیح بده. فقط از اطلاعات FACTS استفاده کن.'
-                ."\n\n".$facts;
-        } else {
-            return 'نوع استراتژی نامعتبر است.';
-        }
-
-        return $this->sendQuery($prompt, $user->id, [], false);
-    }
-
-    /**
-     * تسک امروز: انتخاب قطعی از صف آپگرید موتور؛ LLM فقط لحن را طبیعی می‌کند.
-     * اگر LLM در دسترس نبود، متن قطعی خودمان برگردانده می‌شود — هیچ‌وقت خالی نیست.
-     *
-     * @param  \App\Models\User  $user
-     * @return string
+     * تولید تسک هوشمند روزانه با ایجنت NabuGate
      */
     public function generateNewTask($user)
     {
@@ -218,35 +197,54 @@ PROMPT;
 
         $top = $analysis['upgrade_queue'][0] ?? null;
         if ($top === null) {
-            return 'همه‌چیز مکس است! وقت بردن تاون‌هال '.($analysis['town_hall'] + 1).' است.';
+            return 'همه‌چیز مکس است! وقت ارتقای تاون‌هال به لول '.($analysis['town_hall'] + 1).' فرا رسیده است 👑';
         }
 
-        $deterministic = "مهم‌ترین کار امروز: {$top['name']} را از لِوِل {$top['current']} به سمت {$top['target']} ببر. "
+        $deterministic = "مهم‌ترین ماموریت تاکتیکی امروز: {$top['name']} را از لِوِل {$top['current']} به سمت لول {$top['target']} ارتقا بده. "
             .$top['reason_fa'];
 
         $farm = $analysis['armies']['farm'][0]['name_fa'] ?? null;
         if ($farm) {
-            $deterministic .= " برای هزینه‌اش با «{$farm}» فارم کن.";
+            $deterministic .= " برای تامین لوت و دارک اکسیر با ترکیب «{$farm}» اتک بزن.";
         }
 
-        $polished = $this->sendQuery(
-            "این توصیهٔ محاسبه‌شده را در حداکثر ۳ خط، دوستانه و انگیزشی بازنویسی کن. عدد یا توصیهٔ جدید اضافه نکن:\n\n".$deterministic,
-            $user->id,
-            [],
-            false
-        );
+        $polished = $this->chat([
+            ['role' => 'system', 'content' => $this->systemPrompt('progression_coach')],
+            ['role' => 'user', 'content' => "این ماموریت قطعی را در ۲ الی ۳ خط با لحن فرماندهی حماسی، کوتاه و انگیزشی بازنویسی کن. عدد یا لول جدید اضافه نکن:\n\n".$deterministic],
+        ], 0.3, 300);
 
-        // شکست LLM نباید تسک را از بین ببرد
-        return str_starts_with($polished, 'خطا در ارتباط') ? $deterministic : $polished;
+        return empty($polished) || str_starts_with($polished, 'خطا') ? $deterministic : $polished;
     }
 
     /**
-     * تقویم چندروزه — کاملاً قطعی از صف آپگرید ساخته می‌شود؛ بدون LLM،
-     * بدون زمان‌های ساختگی. هر روز: یک هدف آپگرید + فارم مرتبط.
-     *
-     * @param  \App\Models\User  $user
-     * @return array shape: ['days' => [['day' => int, 'task' => string], ...]]
+     * تولید استراتژی وار یا تقویم
      */
+    public function generateStrategy($user, $type)
+    {
+        $facts = $this->buildFactBlock($user);
+
+        if ($facts === null) {
+            return 'اطلاعات بازی شما یافت نشد. لطفاً ابتدا پروفایل خود را به‌روزرسانی کنید.';
+        }
+
+        if ($type === 'daily_plan') {
+            $system = $this->systemPrompt('progression_coach');
+            $prompt = "بر اساس اطلاعات قطعی زیر یک برنامه عملیاتی برای آپگریدها و لوت امروز تنظیم کن:\n\n{$facts}";
+        } elseif ($type === 'war_strategy') {
+            $system = $this->systemPrompt('war_general');
+            $prompt = "بر اساس اطلاعات قطعی زیر بهترین استراتژی حمله ۳ ستاره وار متناسب با سطح هیروها و نیروها را تشریح کن:\n\n{$facts}";
+        } else {
+            return 'نوع استراتژی نامعتبر است.';
+        }
+
+        $content = $this->chat([
+            ['role' => 'system', 'content' => $system],
+            ['role' => 'user', 'content' => $prompt],
+        ], 0.4);
+
+        return empty($content) ? 'خطا در ارتباط با ایجنت استراتژی هوش مصنوعی.' : $content;
+    }
+
     public function generateCalendar($user): array
     {
         $gameData = $user->gameProfile->game_data ?? [];
@@ -280,26 +278,5 @@ PROMPT;
         }
 
         return ['days' => $days];
-    }
-
-    /**
-     * Extract the first JSON object found in a text blob.
-     */
-    private function extractJsonFromText($text)
-    {
-        if (preg_match('/\{.*\}/s', (string) $text, $matches)) {
-            return $matches[0];
-        }
-
-        return null;
-    }
-
-    /**
-     * Backward-compat stub. NabuGate is stateless, so there is no per-user
-     * conversation cache anymore; callers that still ask for it get an empty array.
-     */
-    public function getChatbotData()
-    {
-        return [];
     }
 }

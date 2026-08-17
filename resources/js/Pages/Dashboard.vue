@@ -46,6 +46,7 @@
 
                     <!-- تب ۱: خلاصه پیشرفت و تسک‌ها (Profile & Tasks) -->
                     <div v-if="activeTab === 'profile'" class="space-y-6">
+                        <SubscriptionUpgradeModal />
                         <ProfileSummary :gameProfile="gameProfile" />
                         <ProgressSummary :analysis="analysis" />
                         <AccountSwitcher
@@ -253,6 +254,7 @@ import AiAssistant from "@/Components/Dashboard/AiAssistant.vue"
 import MapList from "@/Components/Dashboard/MapList.vue"
 import TownHallFilter from "@/Components/Dashboard/TownHallFilter.vue"
 import BuilderHallFilter from "@/Components/Dashboard/BuilderHallFilter.vue"
+import SubscriptionUpgradeModal from "@/Components/Dashboard/SubscriptionUpgradeModal.vue"
 
 export default {
     props: {
@@ -291,6 +293,7 @@ export default {
         MapList,
         TownHallFilter,
         BuilderHallFilter,
+        SubscriptionUpgradeModal,
 
         GameSwitcherBar,
         ClashRoyaleHub,
