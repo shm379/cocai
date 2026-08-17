@@ -115,4 +115,35 @@ class UserController extends Controller
 
         return response()->json(['message' => 'تسک یافت نشد.'], 400);
     }
+
+    /**
+     * مقایسه هوشمند دو بازیکن
+     */
+    public function compareProgress(Request $request, \App\Services\ProgressionService $progression)
+    {
+        $request->validate([
+            'target_tag' => ['required', 'string', 'max:15'],
+        ]);
+
+        $user = auth()->user();
+        $userGameData = $user->gameProfile?->game_data ?? [];
+
+        if (empty($userGameData)) {
+            return response()->json(['error' => 'ابتدا تگ اکانت خود را در داشبورد ثبت کنید.'], 422);
+        }
+
+        try {
+            $targetData = $this->clashOfClansService->getPlayerData($request->target_tag);
+
+            $userAnalysis = $progression->analyze($userGameData);
+            $targetAnalysis = $progression->analyze($targetData);
+
+            return response()->json([
+                'user' => $userAnalysis,
+                'target' => $targetAnalysis,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
 }

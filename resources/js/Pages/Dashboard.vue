@@ -44,6 +44,7 @@
                     v-if="analysis.equipment"
                     :equipment="analysis.equipment"
                 />
+                <HeroEquipmentLoadouts />
                 <BuilderBaseProgressCard
                     v-if="analysis.builder_base"
                     :builderBase="analysis.builder_base"
@@ -172,6 +173,7 @@ import ProgressSummary from "@/Components/Dashboard/ProgressSummary.vue"
 import WarReadinessCard from "@/Components/Dashboard/WarReadinessCard.vue"
 import FarmingAdvisorCard from "@/Components/Dashboard/FarmingAdvisorCard.vue"
 import HeroEquipmentSection from "@/Components/Dashboard/HeroEquipmentSection.vue"
+import HeroEquipmentLoadouts from "@/Components/Dashboard/HeroEquipmentLoadouts.vue"
 import BuilderBaseProgressCard from "@/Components/Dashboard/BuilderBaseProgressCard.vue"
 import UpgradeTimeCalculator from "@/Components/Dashboard/UpgradeTimeCalculator.vue"
 import PlayerComparisonModal from "@/Components/Dashboard/PlayerComparisonModal.vue"
@@ -231,6 +233,7 @@ export default {
         WarReadinessCard,
         FarmingAdvisorCard,
         HeroEquipmentSection,
+        HeroEquipmentLoadouts,
         BuilderBaseProgressCard,
         UpgradeTimeCalculator,
         PlayerComparisonModal,

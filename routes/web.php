@@ -98,6 +98,9 @@ Route::get('/api/player-preview', [UserController::class, 'previewPlayerTag'])
 Route::get('/api/compare-progress', [UserController::class, 'compareProgress'])
     ->middleware(['auth', 'throttle:10,1'])->name('player.compare');
 
+Route::get('/clash/player', [\App\Http\Controllers\ClashOfClansController::class, 'getPlayer'])
+    ->middleware(['auth', 'throttle:30,1'])->name('clash.player');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
