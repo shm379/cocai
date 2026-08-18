@@ -3,97 +3,184 @@
 namespace App\Services;
 
 use App\Models\Map;
-use Goutte\Client;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\DomCrawler\Crawler;
+use App\Models\Topic;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * کراولر نقشه‌ها از Clasher.us API.
+ *
+ * این سرویس نقشه‌های تاون‌هال و بیلدرهال را از API کلشر یواس گرفته و در دیتابیس
+ * ذخیره می‌کند. از firstOrCreate برای topicها استفاده می‌شود تا ستون‌های
+ * hall_type و hall_level به‌درستی پر شوند.
+ */
 class MapCrawlerService
 {
-    protected $baseUrl = 'https://example.com'; // آدرس پایه سایت مورد نظر
+    /**
+     * لیست اندپوینت‌های پایه برای هر تاون‌هال و بیلدرهال.
+     */
+    protected array $baseTypes = [
+        'trophy_base',
+        'war_base',
+        'farming_base',
+        'hybrid_base',
+        'progress_base',
+        'funny_base',
+    ];
 
-    public function crawlMaps()
+    /**
+     * کراول نقشه‌ها برای تمام تاون‌هال‌ها و بیلدرهال‌ها.
+     *
+     * @return array{ok: bool, imported: int, message: string}
+     */
+    public function crawlAll(): array
     {
-        $client = new Client();
+        $totalImported = 0;
+        $errors = [];
 
-        // برای مثال، URL صفحه اول مربوط به نقشه‌ها را وارد می‌کنیم
-        $mapsUrl = 'https://example.com/maps'; // آدرس صفحه نقشه‌ها
-
-        // ارسال درخواست به صفحه نقشه‌ها
-        $crawler = $client->request('GET', $mapsUrl);
-        
-        // استخراج نقشه‌ها
-        $maps = $crawler->filter('div.col-auto.post-media')->each(function (Crawler $node) use ($client) {
-            // استخراج لینک صفحه جزئیات نقشه
-            $mapUrl = $node->filter('a')->attr('href');
-            $title = $node->filter('img.map')->attr('title');
-
-            // ورود به صفحه جزئیات نقشه و استخراج اطلاعات
-            return $this->crawlMapDetails($client, $this->baseUrl . $mapUrl, $title);
-        });
-
-        // بازگشت نقشه‌های استخراج شده
-        return $maps;
-    }
-
-    private function crawlMapDetails($client, $url, $title)
-    {
-        // ارسال درخواست به صفحه جزئیات نقشه
-        $response = $client->request('GET', $url);
-        $html = $response->getBody()->getContents();
-
-        // بارگذاری محتوای HTML
-        $crawler = new Crawler($html);
-
-        // استخراج لینک تصویر نقشه
-        $imageUrl = $crawler->filter('img.map-pic')->count() > 0
-            ? $crawler->filter('img.map-pic')->attr('src')
-            : null;
-
-        // استخراج لینک نهایی نقشه
-        $copyLinkScript = $crawler->filter('script')->reduce(function (Crawler $node) {
-            return strpos($node->text(), 'var copy_link') !== false;
-        });
-
-        preg_match('/var copy_link="(.*?)"/', $copyLinkScript->text(), $matches);
-        $copyLink = $matches[1] ?? null;
-
-        if ($copyLink && $imageUrl) {
-            $finalLink = $this->getFinalLink($this->baseUrl . $copyLink);
-
-            // دانلود تصویر و ذخیره در سرور
-            $savedImagePath = $this->downloadAndSaveImage($imageUrl);
-
-            // ذخیره اطلاعات در دیتابیس
-            Map::create([
-                'title' => $title,
-                'image_path' => $savedImagePath,
-                'map_link' => $finalLink,
-            ]);
-        }
-    }
-
-    private function downloadAndSaveImage($imageUrl)
-    {
-        $client = new Client();
-        $response = $client->get($imageUrl);
-
-        if ($response->getStatusCode() === 200) {
-            $imageName = basename($imageUrl); // نام فایل از URL
-            $imagePath = 'maps/' . $imageName; // مسیر ذخیره در فولدر "maps"
-
-            // ذخیره تصویر در Storage
-            Storage::disk('public')->put($imagePath, $response->getBody());
-
-            return $imagePath; // مسیر ذخیره‌شده
+        for ($th = 1; $th <= 17; $th++) {
+            foreach ($this->baseTypes as $type) {
+                try {
+                    $count = $this->crawlTownHall($th, $type);
+                    $totalImported += $count;
+                } catch (\Throwable $e) {
+                    Log::error("MapCrawlerService TH{$th} {$type} failed: "
+                        .$e->getMessage());
+                    $errors[] = "TH{$th} {$type}: "
+                        .mb_strimwidth($e->getMessage(), 0, 100, '...');
+                }
+            }
         }
 
-        return null; // اگر دانلود موفق نبود
+        for ($bh = 1; $bh <= 10; $bh++) {
+            foreach ($this->baseTypes as $type) {
+                try {
+                    $count = $this->crawlBuilderHall($bh, $type);
+                    $totalImported += $count;
+                } catch (\Throwable $e) {
+                    Log::error("MapCrawlerService BH{$bh} {$type} failed: "
+                        .$e->getMessage());
+                    $errors[] = "BH{$bh} {$type}: "
+                        .mb_strimwidth($e->getMessage(), 0, 100, '...');
+                }
+            }
+        }
+
+        return [
+            'ok' => true,
+            'imported' => $totalImported,
+            'errors' => $errors,
+            'message' => "{$totalImported} نقشه وارد شد."
+                .(empty($errors) ? '' : ' ('.count($errors).' خطای جزئی)'),
+        ];
     }
 
-    private function getFinalLink($link)
+    /**
+     * کراول نقشه‌های یک تاون‌هال خاص.
+     */
+    public function crawlTownHall(int $th, string $type = 'trophy_base'): int
     {
-        // تابعی برای هر تغییرات نهایی در لینک مورد نظر
-        return $link; // برای مثال، تغییرات نهایی ممکن است اعمال شود
+        $dashType = str_replace('_', '-', $type);
+        $url = "http://www.clasher.us/api/mobile/designs/town-hall-{$th}-{$dashType}?sort=like&no_mark=ok";
+
+        return $this->processDesigns($url, "Town Hall {$th} ".ucwords(str_replace('_', ' ', $type)), 0, $th);
+    }
+
+    /**
+     * کراول نقشه‌های یک بیلدرهال خاص.
+     */
+    public function crawlBuilderHall(int $bh, string $type = 'trophy_base'): int
+    {
+        $dashType = str_replace('_', '-', $type);
+        $url = "http://www.clasher.us/api/mobile/designs/builder-hall-{$bh}-{$dashType}?sort=like&no_mark=ok";
+
+        return $this->processDesigns($url, "Builder Hall {$bh} ".ucwords(str_replace('_', ' ', $type)), 1, $bh);
+    }
+
+    /**
+     * پردازش پاسخ API و ذخیره نقشه‌ها.
+     */
+    protected function processDesigns(string $url, string $topicName, int $hallType, int $hallLevel): int
+    {
+        $response = Http::withOptions(['verify' => false])
+            ->timeout(120)
+            ->get($url);
+
+        if (! $response->successful()) {
+            Log::warning("MapCrawlerService failed to fetch: {$url}");
+
+            return 0;
+        }
+
+        $data = $response->json();
+        if (! is_array($data) || empty($data)) {
+            return 0;
+        }
+
+        $topic = $this->getOrCreateTopic($topicName, $hallType, $hallLevel);
+        $imported = 0;
+
+        foreach ($data as $item) {
+            try {
+                $createdAt = $this->convertAgoToDate($item['ago'] ?? 'now');
+
+                $map = Map::updateOrCreate(
+                    ['map_link' => $item['url'] ?? $item['map_link'] ?? null],
+                    [
+                        'name' => $item['name'],
+                        'image_url' => $item['img'] ?? null,
+                        'thumbnail_url' => $item['img_tn'] ?? null,
+                        'copy_link' => $item['copy_link'] ?? null,
+                        'view_count' => $item['viewCount'] ?? 0,
+                        'download_count' => $item['downCount'] ?? 0,
+                        'like_count' => $item['likeCount'] ?? 0,
+                        'report_count' => $item['reportCount'] ?? 0,
+                        'created_at' => $createdAt,
+                    ]
+                );
+
+                if ($map->wasRecentlyCreated || ! $map->topics()->where('topics.id', $topic->id)->exists()) {
+                    $map->topics()->attach($topic->id);
+                }
+
+                $imported++;
+            } catch (\Throwable $e) {
+                Log::error('MapCrawlerService process item failed: '.$e->getMessage());
+            }
+        }
+
+        return $imported;
+    }
+
+    /**
+     * دریافت یا ساخت topic با hall_type و hall_level.
+     */
+    protected function getOrCreateTopic(string $name, int $hallType, int $hallLevel): Topic
+    {
+        $topic = Topic::firstOrCreate(
+            ['name' => $name],
+            ['hall_type' => $hallType, 'hall_level' => $hallLevel]
+        );
+
+        if (is_null($topic->hall_type) || is_null($topic->hall_level)) {
+            $topic->update(['hall_type' => $hallType, 'hall_level' => $hallLevel]);
+        }
+
+        return $topic;
+    }
+
+    /**
+     * تبدیل رشته‌های "X minutes ago" به تاریخ Carbon.
+     */
+    protected function convertAgoToDate(string $agoString): Carbon
+    {
+        $time = Carbon::now();
+
+        if (preg_match('/(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago/', $agoString, $matches)) {
+            $time = Carbon::now()->sub($matches[2], (int) $matches[1]);
+        }
+
+        return $time;
     }
 }
-

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\StrategyLabSession;
+use App\Services\AI\BaseVisionAnalyzer;
 use App\Services\StrategyLabAnalyzer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,8 +12,10 @@ use Inertia\Inertia;
 
 class StrategyLabController extends Controller
 {
-    public function __construct(private StrategyLabAnalyzer $analyzer)
-    {
+    public function __construct(
+        private StrategyLabAnalyzer $analyzer,
+        private BaseVisionAnalyzer $visionAnalyzer,
+    ) {
     }
 
     /**
@@ -127,6 +130,38 @@ class StrategyLabController extends Controller
         return response()->json(
             $this->analyzer->analyze($validated['buildings'])
         );
+    }
+
+    /**
+     * Detect buildings from an uploaded base screenshot using AI Vision.
+     */
+    public function detectByVision(Request $request)
+    {
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'max:5120'],
+        ]);
+
+        if (! $this->visionAnalyzer->isConfigured()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'AI Vision پیکربندی نشده است.',
+            ], 503);
+        }
+
+        $result = $this->visionAnalyzer->detectBuildings($validated['image']);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'ok' => false,
+                'message' => $result['message'] ?? 'خطا در تحلیل تصویر.',
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'buildings' => $result['buildings'],
+            'analysis' => $this->analyzer->analyze($result['buildings']),
+        ]);
     }
 
     private function authorizeAccess(Request $request, StrategyLabSession $session): void

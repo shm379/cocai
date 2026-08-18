@@ -27,7 +27,7 @@ class ChatbotService
     /**
      * سیستم‌پرامپت تخصصی بر اساس مود ایجنت انتخاب‌شده.
      */
-    protected function systemPrompt(string $agentMode = 'war_general'): string
+    public function systemPrompt(string $agentMode = 'war_general'): string
     {
         $agentPersonas = [
             'war_general' => <<<'PROMPT'

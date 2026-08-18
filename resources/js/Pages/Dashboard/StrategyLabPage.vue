@@ -76,6 +76,16 @@
                         </button>
 
                         <button
+                            v-if="imageFile"
+                            @click="detectWithVision"
+                            :disabled="detectingVision"
+                            class="px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            <span>🤖</span>
+                            <span>{{ detectingVision ? 'در حال تشخیص با AI...' : 'تشخیص خودکار با AI' }}</span>
+                        </button>
+
+                        <button
                             @click="openSaveModal"
                             :disabled="saving || buildings.length === 0"
                             class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -278,6 +288,7 @@ export default {
             nextBuildingId: 1,
             analysis: null,
             analyzing: false,
+            detectingVision: false,
             saving: false,
             showSaveModal: false,
             sessionTitle: '',
@@ -405,6 +416,48 @@ export default {
                 alert('خطا در تحلیل نقشه.')
             } finally {
                 this.analyzing = false
+            }
+        },
+        async detectWithVision() {
+            if (!this.imageFile) {
+                alert('ابتدا یک تصویر آپلود کنید.')
+                return
+            }
+
+            this.detectingVision = true
+            this.analysis = null
+
+            const formData = new FormData()
+            formData.append('image', this.imageFile)
+
+            try {
+                const response = await window.axios.post('/api/strategy-lab/detect-vision', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                const data = response.data
+
+                if (!data.ok) {
+                    alert(data.message || 'خطا در تشخیص ساختمان‌ها.')
+                    return
+                }
+
+                this.buildings = data.buildings || []
+                this.nextBuildingId = this.buildings.length + 1
+                this.analysis = data.analysis || null
+
+                this.$nextTick(() => {
+                    this.redrawCanvas()
+                })
+
+                if (this.buildings.length === 0) {
+                    alert('هیچ ساختمانی تشخیص داده نشد. لطفاً ساختمان‌ها را دستی علامت‌گذاری کنید.')
+                }
+            } catch (error) {
+                console.error(error)
+                const message = error.response?.data?.message || 'خطا در ارتباط با AI Vision.'
+                alert(message)
+            } finally {
+                this.detectingVision = false
             }
         },
         openSaveModal() {

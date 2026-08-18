@@ -119,6 +119,12 @@
                                 📋 کپی
                             </button>
                         </div>
+                        <div v-if="msg.action && msg.action !== 'chat'" class="mb-2">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                                <span>⚡</span>
+                                <span>{{ actionLabel(msg.action) }}</span>
+                            </span>
+                        </div>
                         <p class="whitespace-pre-line">{{ msg.content }}</p>
                     </div>
                 </div>
@@ -176,9 +182,10 @@ export default {
                     avatar: '⚔️',
                     bio: 'متخصص تضمین اتک‌های ۳ ستاره، فانلینگ، ترکیب اسپل‌ها، سوپر آرچر بلیمپ و هیرو دایو.',
                     quickPrompts: [
+                        'پروفایل کلش من را بروزرسانی کن',
+                        'برام یک تسک جدید بساز',
+                        'استراتژی وار برای اکانت من بگو',
                         'چطور با ارتش متای تاون‌هالم ۳ ستاره تضمینی بزنم؟',
-                        'بهترین نقطه ورود برای Super Archer Blimp کجاست؟',
-                        'اسپل Overgrowth رو کجای مپ بندازم تا مسیر باز بشه؟',
                     ]
                 },
                 {
@@ -271,6 +278,7 @@ export default {
 
                 this.messages.push({
                     role: 'assistant',
+                    action: data.action || 'chat',
                     content: data.answer || 'پاسخی از ایجنت دریافت نشد.',
                 });
             } catch (error) {
@@ -285,6 +293,16 @@ export default {
         },
         clearChat() {
             this.messages = [];
+        },
+        actionLabel(action) {
+            const labels = {
+                refresh_profile: 'پروفایل به‌روز شد',
+                generate_task: 'تسک جدید ساخته شد',
+                daily_plan: 'برنامه روزانه آماده شد',
+                war_strategy: 'استراتژی وار آماده شد',
+                crawl_maps: 'کراول نقشه‌ها شروع شد',
+            };
+            return labels[action] || action;
         },
         copyText(text) {
             navigator.clipboard.writeText(text);

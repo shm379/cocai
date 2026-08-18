@@ -4,15 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Jobs\CrawlClasherMaps;
 use App\Models\Map;
+use App\Services\MapCrawlerService;
 use Illuminate\Http\Request;
 
 class MapController extends Controller
 {
-    public function crawlMaps()
+    public function __construct(protected MapCrawlerService $crawler)
     {
+    }
+
+    public function crawlMaps(Request $request)
+    {
+        if ($request->boolean('sync')) {
+            $result = $this->crawler->crawlAll();
+
+            return response()->json($result);
+        }
+
         CrawlClasherMaps::dispatch();
 
         return response()->json([
+            'ok' => true,
             'message' => 'کراول نقشه‌ها در صف پردازش قرار گرفت. پس از چند دقیقه نقشه‌ها به‌روز می‌شوند.',
         ]);
     }

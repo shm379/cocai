@@ -71,6 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::match(['get', 'post'], '/auth/gamecity/callback', [\App\Http\Controllers\GameCityAuthController::class, 'callback'])
         ->name('auth.gamecity.callback');
 
+    // تشخیص خودکار ساختمان‌ها از روی تصویر با AI Vision
+    Route::post('/api/strategy-lab/detect-vision', [StrategyLabController::class, 'detectByVision'])
+        ->name('strategy-lab.detect-vision');
+
     // ای‌پی‌آی ترکیب‌ها و تیرلیست متای برتر (Winning Meta & Tactics)
     Route::get('/api/meta-tier-items', function () {
         $items = \App\Models\MetaTierItem::where('is_featured', true)
