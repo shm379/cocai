@@ -93,6 +93,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/ai/live-attack-plan', [\App\Http\Controllers\AiTacticalController::class, 'liveAttackPlan'])
         ->name('ai.live-attack-plan');
 
+    // سیستم اتاق جنگ کلن و رزرو اهداف (Clan War Room & Target Calling)
+    Route::get('/api/war-room/state', [\App\Http\Controllers\WarRoomController::class, 'state'])
+        ->name('war-room.state');
+    Route::post('/api/war-room/call', [\App\Http\Controllers\WarRoomController::class, 'call'])
+        ->name('war-room.call');
+    Route::post('/api/war-room/record-result', [\App\Http\Controllers\WarRoomController::class, 'recordResult'])
+        ->name('war-room.record-result');
+    Route::delete('/api/war-room/calls/{id}', [\App\Http\Controllers\WarRoomController::class, 'cancel'])
+        ->name('war-room.cancel');
+    Route::post('/api/war-room/estimate', [\App\Http\Controllers\WarRoomController::class, 'estimate'])
+        ->name('war-room.estimate');
+
     // پلن اتک خودکار و دانلود ایجنت اندروید (Android In-Game Auto-Attack Bot)
     Route::post('/api/android/generate-macro', [\App\Http\Controllers\AndroidCompanionController::class, 'generateMacro'])
         ->name('android.generate-macro');

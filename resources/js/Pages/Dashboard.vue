@@ -76,6 +76,10 @@
 
                     <!-- تب ۲: وار و استراتژی‌های حمله (War & Strategies) -->
                     <div v-else-if="activeTab === 'strategy'" class="space-y-6">
+                        <ClanWarRoomHub
+                            :clanTag="gameProfile?.clan?.tag || ''"
+                            :playerTownHall="analysis.town_hall || gameProfile.townHallLevel || 15"
+                        />
                         <AndroidCompanionControlCenter />
                         <MobileLiveAttackCompanion />
                         <MetaTierListHub />
@@ -273,6 +277,7 @@ import CwlStrategyHub from "@/Components/Dashboard/CwlStrategyHub.vue"
 import EquipmentMatrixHub from "@/Components/Dashboard/EquipmentMatrixHub.vue"
 import MobileLiveAttackCompanion from "@/Components/Dashboard/MobileLiveAttackCompanion.vue"
 import AndroidCompanionControlCenter from "@/Components/Dashboard/AndroidCompanionControlCenter.vue"
+import ClanWarRoomHub from "@/Components/Dashboard/ClanWarRoomHub.vue"
 
 export default {
     props: {
@@ -321,6 +326,7 @@ export default {
         EquipmentMatrixHub,
         MobileLiveAttackCompanion,
         AndroidCompanionControlCenter,
+        ClanWarRoomHub,
 
         GameSwitcherBar,
         ClashRoyaleHub,
