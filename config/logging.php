@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'password_reset' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/password-reset.log'),
+            'level' => 'info',
+            'days' => 7,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

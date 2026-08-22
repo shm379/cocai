@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\CustomResetPassword;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -173,5 +174,13 @@ class User extends Authenticatable implements FilamentUser
 
         $this->task_last_completed_at = now();
         $this->save();
+    }
+
+    /**
+     * ارسال نوتیفیکیشن بازیابی رمز عبور با قالب و لاگ‌گذاری سفارشی.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new CustomResetPassword($token));
     }
 }

@@ -4,7 +4,8 @@ import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 defineProps({
     status: {
@@ -19,28 +20,32 @@ const form = useForm({
 const submit = () => {
     form.post(route('password.email'));
 };
+
+const isLocal = computed(() => usePage().props.app_env === 'local');
 </script>
 
 <template>
     <GuestLayout>
-        <Head title="Forgot Password" />
+        <Head title="بازیابی رمز عبور" />
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
+        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400" dir="rtl">
+            رمز عبور خود را فراموش کرده‌اید؟ مشکلی نیست. ایمیل خود را وارد کنید تا لینک بازیابی رمز عبور برای شما ارسال شود.
         </div>
 
         <div
             v-if="status"
             class="mb-4 text-sm font-medium text-green-600 dark:text-green-400"
+            dir="rtl"
         >
             {{ status }}
+            <span v-if="isLocal" class="block mt-1 text-xs text-gray-500">
+                (در حالت توسعه، لینک بازیابی همچنین در فایل <code>storage/logs/password-reset.log</code> ذخیره می‌شود.)
+            </span>
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Email" />
+                <InputLabel for="email" value="ایمیل" />
 
                 <TextInput
                     id="email"
@@ -60,7 +65,7 @@ const submit = () => {
                     :class="{ 'opacity-25': form.processing }"
                     :disabled="form.processing"
                 >
-                    Email Password Reset Link
+                    ارسال لینک بازیابی
                 </PrimaryButton>
             </div>
         </form>

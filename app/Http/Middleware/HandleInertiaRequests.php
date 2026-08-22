@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
                 'successMessage' => fn() => $request->session()->get('successMessage'),
                 'message' => fn() => $request->session()->get('message'),
             ],
+            'app_env' => fn() => app()->environment(),
         ];
     }
 }
