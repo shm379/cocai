@@ -24,12 +24,14 @@ class ClashOfClansService
      */
     public function getPlayerData(string $playerTag): array
     {
-        $cleanTag = $this->normalizeTag($playerTag);
-
-        // تگ‌های آزمایشی مستقیم داده ماک دریافت می‌کنند
-        if (in_array($cleanTag, ['DEMO', 'TEST', 'TH11', 'TH12', 'TH13', 'TH14', 'TH15', 'TH16', 'TH17'])) {
-            return $this->generateDemoProfile($cleanTag);
+        // تگ‌های آزمایشی مستقیم داده ماک دریافت می‌کنند (قبل از نرمال‌سازی بررسی شوند
+        // تا تگ‌هایی مانند DEMO که حرف O دارند به DEM0 تبدیل نشوند).
+        $rawTag = strtoupper(str_replace(['#', ' '], '', trim($playerTag)));
+        if (in_array($rawTag, ['DEMO', 'TEST', 'TH11', 'TH12', 'TH13', 'TH14', 'TH15', 'TH16', 'TH17'])) {
+            return $this->generateDemoProfile($rawTag);
         }
+
+        $cleanTag = $this->normalizeTag($playerTag);
 
         return cache()->remember("coc.player.{$cleanTag}", now()->addMinutes(5), function () use ($cleanTag) {
             if (! empty($this->apiToken) && ! empty($this->apiBase)) {
@@ -154,8 +156,9 @@ class ClashOfClansService
 
     public function storeProfile($user, string $playerTag): GameProfile
     {
+        // getPlayerData خودش نرمال‌سازی و تشخیص تگ‌های آزمایشی را انجام می‌دهد.
+        $playerData = $this->getPlayerData($playerTag);
         $cleanTag = $this->normalizeTag($playerTag);
-        $playerData = $this->getPlayerData($cleanTag);
 
         $existing = GameProfile::where('user_id', $user->id)->first();
         $tagChanged = $existing && $existing->player_tag !== $cleanTag;

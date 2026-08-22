@@ -193,6 +193,11 @@
                         <AiAssistant :gameProfile="gameProfile" />
                     </div>
 
+                    <!-- تب ۹: بیس‌های نشان‌شده (Favorites) -->
+                    <div v-else-if="activeTab === 'favorites'" class="space-y-6">
+                        <FavoritesHub />
+                    </div>
+
                 </div>
             </template>
         </div>
@@ -278,6 +283,7 @@ import EquipmentMatrixHub from "@/Components/Dashboard/EquipmentMatrixHub.vue"
 import MobileLiveAttackCompanion from "@/Components/Dashboard/MobileLiveAttackCompanion.vue"
 import AndroidCompanionControlCenter from "@/Components/Dashboard/AndroidCompanionControlCenter.vue"
 import ClanWarRoomHub from "@/Components/Dashboard/ClanWarRoomHub.vue"
+import FavoritesHub from "@/Components/Dashboard/FavoritesHub.vue"
 
 export default {
     props: {
@@ -327,6 +333,7 @@ export default {
         MobileLiveAttackCompanion,
         AndroidCompanionControlCenter,
         ClanWarRoomHub,
+        FavoritesHub,
 
         GameSwitcherBar,
         ClashRoyaleHub,

@@ -6,6 +6,7 @@ use App\Jobs\CrawlClasherMaps;
 use App\Models\Map;
 use App\Services\MapCrawlerService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class MapController extends Controller
 {
@@ -40,7 +41,7 @@ class MapController extends Controller
             $user->favoriteMaps()->detach($map->id);
             $isFavorite = false;
         } else {
-            $user->favoriteMaps()->attach($map->id);
+            $user->favoriteMaps()->attach($map->id, $this->favoritePayload($request));
             $isFavorite = true;
         }
 
@@ -51,14 +52,70 @@ class MapController extends Controller
     }
 
     /**
-     * List user's favorite maps.
+     * Update notes and tags on an existing favorite.
+     */
+    public function updateFavorite(Request $request, Map $map)
+    {
+        $user = $request->user();
+
+        $favorite = $user->favoriteMaps()
+            ->where('maps.id', $map->id)
+            ->first();
+
+        if (! $favorite) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'این نقشه در علاقه‌مندی‌های شما وجود ندارد.',
+            ], 404);
+        }
+
+        $payload = $this->favoritePayload($request);
+        $user->favoriteMaps()->updateExistingPivot($map->id, $payload);
+
+        return response()->json([
+            'ok' => true,
+            'notes' => $payload['notes'] ?? null,
+            'tags' => $payload['tags'] ?? [],
+            'message' => 'یادداشت و برچسب‌ها به‌روز شد.',
+        ]);
+    }
+
+    /**
+     * List user's favorite maps with optional tag filter.
      */
     public function favorites(Request $request)
     {
-        $maps = $request->user()->favoriteMaps()
-            ->orderByDesc('map_favorites.created_at')
-            ->paginate(12);
+        $query = $request->user()->favoriteMaps()
+            ->withPivot(['notes', 'tags'])
+            ->orderByDesc('map_favorites.created_at');
+
+        if ($request->filled('tag')) {
+            $tag = trim($request->query('tag'));
+            $query->whereJsonContains('map_favorites.tags', $tag);
+        }
+
+        $maps = $query->paginate(12);
 
         return response()->json($maps);
+    }
+
+    /**
+     * Build the pivot payload for notes/tags.
+     */
+    private function favoritePayload(Request $request): array
+    {
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:30'],
+        ]);
+
+        $tags = $validated['tags'] ?? [];
+        $tags = array_values(array_unique(array_filter(array_map('trim', $tags))));
+
+        return [
+            'notes' => $validated['notes'] ?? null,
+            'tags' => $tags ?: null,
+        ];
     }
 }

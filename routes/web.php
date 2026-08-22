@@ -189,6 +189,7 @@ Route::get('/map', [MapController::class, 'crawlMaps'])->middleware('auth')->nam
 // علاقه‌مندی‌های نقشه
 Route::middleware('auth')->group(function () {
     Route::post('/maps/{map}/favorite', [MapController::class, 'toggleFavorite'])->name('maps.favorite');
+    Route::put('/maps/{map}/favorite', [MapController::class, 'updateFavorite'])->name('maps.favorite.update');
     Route::get('/maps/favorites', [MapController::class, 'favorites'])->name('maps.favorites');
 });
 

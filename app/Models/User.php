@@ -108,7 +108,10 @@ class User extends Authenticatable implements FilamentUser
 
     public function favoriteMaps()
     {
-        return $this->belongsToMany(Map::class, 'map_favorites')->withTimestamps();
+        return $this->belongsToMany(Map::class, 'map_favorites')
+            ->using(MapFavorite::class)
+            ->withPivot(['notes', 'tags'])
+            ->withTimestamps();
     }
 
     public function subscriptions()
