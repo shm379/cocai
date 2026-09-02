@@ -211,13 +211,3 @@ Route::match(['get', 'post'], '/subscription/callback/{gateway}', [\App\Http\Con
 
 require __DIR__.'/auth.php';
 
-// TEMP-DEV-PREVIEW-START: مسیر موقت ورود برای بررسی بصری محلی؛ باید حذف شود
-if (app()->environment('local')) {
-    Route::get('/__dev-preview-login/{id}', function (int $id) {
-        abort_unless(request()->ip() === '127.0.0.1', 403);
-        \Illuminate\Support\Facades\Auth::loginUsingId($id);
-
-        return redirect()->away('http://localhost:8765/dashboard?tab=cloner');
-    });
-}
-// TEMP-DEV-PREVIEW-END

@@ -39,6 +39,10 @@ return [
         'base_url' => env('NABU_BASE_URL', 'https://gate.nabuxai.com'),
         'api_key' => env('NABU_API_KEY', '8280820Hh@'),
         'model' => env('NABU_MODEL', 'openrouter2/google/gemini-2.5-flash'),
+        // مدل مخصوص تصویر؛ اگر در دسترس نبود، به‌صورت خودکار روی `model` می‌افتد
+        // چند alias با کاما: به ترتیب امتحان می‌شوند، در انتها `model`
+        'vision_model' => env('NABU_VISION_MODEL', 'nabu-vision,nabu-ocr'),
+        'vision_timeout' => (int) env('NABU_VISION_TIMEOUT', 180),
     ],
 
     'clash_royale' => [

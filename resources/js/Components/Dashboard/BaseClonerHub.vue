@@ -167,7 +167,7 @@
                 <span class="text-lg">⚠️</span>
                 <div>
                     <p class="text-sm font-bold text-red-100">{{ error }}</p>
-                    <p class="text-[11px] text-red-200/70 mt-1">راه حل: عکس واضح‌تر و کامل‌تر بفرست، یا بازی درست را انتخاب کن.</p>
+                    <p class="text-[11px] text-red-200/70 mt-1">{{ errorTip }}</p>
                 </div>
             </div>
             <div v-if="errorMatches.length" class="space-y-1.5">
@@ -437,6 +437,7 @@ export default {
             elapsed: 0,
             elapsedTimer: null,
             error: null,
+            errorReason: null,
             errorMatches: [],
             result: null,
             iso: true,
@@ -485,11 +486,19 @@ export default {
         loadingLabel() {
             if (this.elapsed < 4) return 'در حال ارسال تصویر…'
             if (this.elapsed < 15) return this.selectedGame?.result_type === 'deck' ? 'در حال شناسایی کارت‌ها…' : 'در حال شناسایی ساختمان‌ها…'
-            if (this.elapsed < 35) return 'در حال بازسازی چیدمان…'
+            if (this.elapsed < 60) return 'در حال بازسازی چیدمان…'
+            if (this.elapsed < 120) return 'بیس‌های بزرگ تا ۲ دقیقه طول می‌کشند…'
             return 'کمی بیشتر طول کشید، لطفاً صبر کنید…'
         },
         tips() {
             return TIPS[this.selectedKey] || TIPS.coc_home
+        },
+        errorTip() {
+            const infra = ['connection', 'auth', 'model', 'server', 'timeout']
+            if (this.errorReason === 'timeout') return 'سرویس شلوغ است؛ چند ثانیه صبر کن و دوباره بزن. عکس شما مشکلی ندارد.'
+            if (infra.includes(this.errorReason)) return 'این مشکل از سمت سرور/سرویس هوش مصنوعی است، نه عکس شما. کمی بعد دوباره تلاش کن؛ اگر ادامه داشت به پشتیبانی بگو.'
+            if (this.errorReason === 'empty') return 'مدل چیزی برنگرداند. یک بار دیگر بزن؛ اگر تکرار شد عکس کامل‌تر و واضح‌تری بفرست.'
+            return 'راه حل: عکس واضح‌تر و کامل‌تر بفرست، یا بازی درست را انتخاب کن.'
         },
         fileLabel() {
             if (!this.file) return ''
@@ -637,6 +646,7 @@ export default {
             this.file = null
             this.title = ''
             this.error = null
+            this.errorReason = null
             this.errorMatches = []
             this.result = null
         },
@@ -644,6 +654,7 @@ export default {
             if (!this.canSubmit) return
             this.loading = true
             this.error = null
+            this.errorReason = null
             this.errorMatches = []
             this.result = null
             this.startTimer()
@@ -656,7 +667,7 @@ export default {
             try {
                 const { data } = await window.axios.post('/api/base-clones', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
-                    timeout: 120000,
+                    timeout: 240000,
                 })
                 this.result = { clone: data.clone, matches: data.matches || [] }
                 this.fetchMine()
@@ -668,6 +679,7 @@ export default {
                 this.error = data?.message
                     || Object.values(data?.errors || {}).flat()[0]
                     || (err.code === 'ECONNABORTED' ? 'تحلیل بیش از حد طول کشید. دوباره تلاش کن.' : 'خطا در بازسازی. لطفاً دوباره تلاش کن.')
+                this.errorReason = data?.reason || (err.code === 'ECONNABORTED' ? 'timeout' : null)
                 this.errorMatches = Array.isArray(data?.matches) ? data.matches : []
             } finally {
                 this.loading = false

@@ -4,7 +4,19 @@
     {
       "name": "cocai-serve",
       "runtimeExecutable": "env",
-      "runtimeArgs": ["ASSET_URL=http://localhost:8765", "APP_URL=http://localhost:8765", "php", "artisan", "serve", "--host=127.0.0.1", "--port=8765", "--no-reload"],
+      "runtimeArgs": [
+        "ASSET_URL=http://localhost:8765",
+        "APP_URL=http://localhost:8765",
+        "NABU_BASE_URL=https://gate.nabuxai.com",
+        "NABU_MODEL=nabu-smart",
+        "NABU_VISION_MODEL=nabu-vision",
+        "php",
+        "artisan",
+        "serve",
+        "--host=127.0.0.1",
+        "--port=8765",
+        "--no-reload"
+      ],
       "port": 8765,
       "autoPort": false
     }

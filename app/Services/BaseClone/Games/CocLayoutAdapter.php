@@ -36,6 +36,7 @@ abstract class CocLayoutAdapter implements GameAdapter
             return [
                 'ok' => false,
                 'message' => $extracted['message'] ?? 'خطا در تحلیل تصویر.',
+                'reason' => $extracted['reason'] ?? 'parse',
                 'matches' => $matches,
             ];
         }

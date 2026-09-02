@@ -18,12 +18,69 @@ class BaseVisionAnalyzer
     protected ?string $baseUrl;
     protected ?string $apiKey;
     protected ?string $model;
+    protected ?string $visionModel;
+    protected int $timeout;
+
+    /** آخرین خطای فراخوانی مدل (برای پیام دقیق به کاربر و لاگ). */
+    protected ?array $lastError = null;
 
     public function __construct()
     {
         $this->baseUrl = rtrim(config('services.nabu.base_url') ?? '', '/');
         $this->apiKey = config('services.nabu.api_key');
         $this->model = config('services.nabu.model');
+        $this->visionModel = config('services.nabu.vision_model');
+        $this->timeout = max(20, (int) config('services.nabu.vision_timeout', 180));
+    }
+
+    /**
+     * مدل‌هایی که به ترتیب امتحان می‌شوند: ابتدا alias تصویری، سپس مدل عمومی.
+     *
+     * @return array<int, string>
+     */
+    protected function models(): array
+    {
+        $list = array_map('trim', explode(',', (string) $this->visionModel));
+        $list[] = $this->model;
+
+        return array_values(array_unique(array_filter($list)));
+    }
+
+    /**
+     * @return array{reason: string, status: ?int, detail: string, model: ?string}|null
+     */
+    public function lastError(): ?array
+    {
+        return $this->lastError;
+    }
+
+    /**
+     * پیام فارسی متناسب با آخرین خطا.
+     */
+    public function lastErrorMessage(): string
+    {
+        $e = $this->lastError;
+        $status = $e['status'] ?? null;
+
+        return match ($e['reason'] ?? 'empty') {
+            'connection' => 'اتصال به سرویس هوش مصنوعی برقرار نشد (gateway در دسترس نیست). تنظیم NABU_BASE_URL را بررسی کنید.',
+            'timeout' => 'تحلیل تصویر بیش از حد طول کشید. دوباره تلاش کنید.',
+            'auth' => 'توکن سرویس هوش مصنوعی نامعتبر است یا به مدل Vision دسترسی ندارد (NABU_API_KEY / NABU_VISION_MODEL).',
+            'model' => "مدل Vision در دسترس نیست (کد {$status}). تنظیم NABU_VISION_MODEL را بررسی کنید.",
+            'server' => "سرویس هوش مصنوعی موقتاً پاسخ نمی‌دهد (کد {$status}). چند لحظه بعد دوباره تلاش کنید.",
+            'empty' => 'مدل Vision پاسخ خالی برگرداند. دوباره تلاش کنید یا تصویر واضح‌تری بفرستید.',
+            default => 'پاسخی از مدل Vision دریافت نشد.',
+        };
+    }
+
+    protected function setError(string $reason, ?int $status, string $detail, ?string $model = null): void
+    {
+        $this->lastError = [
+            'reason' => $reason,
+            'status' => $status,
+            'detail' => mb_substr($detail, 0, 500),
+            'model' => $model,
+        ];
     }
 
     /**
@@ -57,7 +114,8 @@ class BaseVisionAnalyzer
             return [
                 'ok' => false,
                 'buildings' => [],
-                'message' => 'پاسخی از مدل Vision دریافت نشد.',
+                'message' => $this->lastErrorMessage(),
+                'reason' => $this->lastError()['reason'] ?? 'empty',
             ];
         }
 
@@ -198,68 +256,145 @@ PROMPT;
 
     /**
      * فراخوانی مدل Vision از طریق NabuGate (OpenAI-compatible).
+     *
+     * ترتیب تلاش: هر مدل از models() (ابتدا alias تصویری)، هر کدام تا دو بار در خطای
+     * موقت سرور. خطای 4xx یعنی این مدل برای این توکن در دسترس نیست → مدل بعدی.
+     *
+     * @return array{content: string, model: string}|null
      */
     protected function callVisionModel(string $base64Image): ?array
     {
+        $this->lastError = null;
         $systemPrompt = $this->systemPrompt();
 
-        $payload = [
-            'model' => $this->model,
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => $systemPrompt,
-                ],
-                [
-                    'role' => 'user',
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => $this->userPrompt(),
-                        ],
-                        [
-                            'type' => 'image_url',
-                            'image_url' => [
-                                'url' => $base64Image,
+        // فراخوانی Vision ممکن است ۳۰ تا ۹۰ ثانیه طول بکشد؛ سقف پیش‌فرض PHP (۳۰ ثانیه) کافی نیست.
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(max(($this->timeout + 30) * 2, 180));
+        }
+
+        foreach ($this->models() as $model) {
+            $payload = [
+                'model' => $model,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => $systemPrompt,
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => [
+                            [
+                                'type' => 'text',
+                                'text' => $this->userPrompt(),
+                            ],
+                            [
+                                'type' => 'image_url',
+                                'image_url' => [
+                                    'url' => $base64Image,
+                                ],
                             ],
                         ],
                     ],
                 ],
-            ],
-            'temperature' => $this->temperature(),
-            'max_tokens' => $this->maxTokens(),
-        ];
+                'temperature' => $this->temperature(),
+                'max_tokens' => $this->maxTokens(),
+            ];
 
-        foreach ([1, 2] as $attempt) {
-            try {
-                $response = Http::timeout(60)
-                    ->connectTimeout(10)
-                    ->withToken($this->apiKey)
-                    ->acceptJson()
-                    ->post($this->baseUrl.'/v1/chat/completions', $payload);
+            foreach ([1, 2] as $attempt) {
+                try {
+                    $response = Http::timeout($this->timeout)
+                        ->connectTimeout(10)
+                        ->withToken($this->apiKey)
+                        ->acceptJson()
+                        ->post($this->baseUrl.'/v1/chat/completions', $payload);
+                } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                    $isTimeout = str_contains(strtolower($e->getMessage()), 'timed out')
+                        || str_contains(strtolower($e->getMessage()), 'timeout');
+                    $this->setError($isTimeout ? 'timeout' : 'connection', null, $e->getMessage(), $model);
+                    Log::error(static::class." [{$model}] attempt {$attempt} connection error: ".$e->getMessage());
+
+                    // timeout: تکرار فقط زمان کاربر را دو برابر می‌کند؛ بدون اتصال هم مدل دیگر جواب نمی‌دهد.
+                    return null;
+                } catch (\Throwable $e) {
+                    $this->setError('connection', null, $e->getMessage(), $model);
+                    Log::error(static::class." [{$model}] attempt {$attempt} exception: ".$e->getMessage());
+
+                    return null;
+                }
 
                 if ($response->ok()) {
                     $json = $response->json();
+                    $content = $this->extractContent(is_array($json) ? $json : []);
 
-                    return [
-                        'content' => (string) data_get($json, 'choices.0.message.content', ''),
-                        'model' => data_get($json, 'model', $this->model),
-                    ];
+                    if ($content !== '') {
+                        $finish = data_get($json, 'choices.0.finish_reason');
+                        if ($finish === 'length') {
+                            Log::warning(static::class." [{$model}] output truncated by max_tokens.", [
+                                'chars' => mb_strlen($content),
+                                'usage' => data_get($json, 'usage'),
+                            ]);
+                        }
+
+                        return [
+                            'content' => $content,
+                            'model' => data_get($json, 'model', $model),
+                            'finish_reason' => $finish,
+                        ];
+                    }
+
+                    // پاسخ خالی = خطا؛ یک بار دیگر و بعد مدل بعدی.
+                    $this->setError('empty', 200, mb_substr($response->body(), 0, 300), $model);
+                    Log::warning(static::class." [{$model}] attempt {$attempt} returned empty content.");
+
+                    continue;
                 }
 
-                Log::error("BaseVisionAnalyzer attempt {$attempt} failed: "
-                    .$response->status().' '.$response->body());
+                $status = $response->status();
+                $detail = mb_substr($response->body(), 0, 300);
+                Log::error(static::class." [{$model}] attempt {$attempt} failed: {$status} {$detail}");
 
-                if ($response->clientError()) {
-                    return null;
+                if (in_array($status, [401, 403], true)) {
+                    $this->setError('auth', $status, $detail, $model);
+                    break; // این مدل مجاز نیست؛ مدل بعدی
                 }
-            } catch (\Throwable $e) {
-                Log::error("BaseVisionAnalyzer attempt {$attempt} exception: "
-                    .$e->getMessage());
+
+                if ($status >= 400 && $status < 500) {
+                    $this->setError('model', $status, $detail, $model);
+                    break; // مدل/پارامتر نامعتبر؛ مدل بعدی
+                }
+
+                $this->setError('server', $status, $detail, $model);
+                // 5xx: یک بار دیگر همین مدل
             }
         }
 
         return null;
+    }
+
+    /**
+     * استخراج متن از پاسخ OpenAI-compatible؛ content می‌تواند رشته یا آرایه‌ای از بخش‌ها باشد.
+     */
+    protected function extractContent(array $json): string
+    {
+        $content = data_get($json, 'choices.0.message.content');
+
+        if (is_array($content)) {
+            $parts = [];
+            foreach ($content as $part) {
+                if (is_string($part)) {
+                    $parts[] = $part;
+                } elseif (is_array($part) && isset($part['text']) && is_string($part['text'])) {
+                    $parts[] = $part['text'];
+                }
+            }
+            $content = implode("\n", $parts);
+        }
+
+        if (! is_string($content) || trim($content) === '') {
+            $content = data_get($json, 'choices.0.text');
+        }
+
+        return is_string($content) ? trim($content) : '';
     }
 
     /**

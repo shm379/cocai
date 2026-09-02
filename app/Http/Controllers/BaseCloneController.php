@@ -75,11 +75,15 @@ class BaseCloneController extends Controller
         );
 
         if (! $result['ok']) {
+            // خطای زیرساخت (gateway/توکن/مدل) 503 است تا از خطای تصویر کاربر جدا شود.
+            $infra = in_array($result['reason'] ?? '', ['connection', 'auth', 'model', 'server', 'timeout'], true);
+
             return response()->json([
                 'ok' => false,
                 'message' => $result['message'],
+                'reason' => $result['reason'] ?? 'unknown',
                 'matches' => $result['matches'],
-            ], 422);
+            ], $infra ? 503 : 422);
         }
 
         return response()->json([

@@ -50,6 +50,7 @@ class BaseCloneService
             return [
                 'ok' => false,
                 'message' => $result['message'] ?? 'خطا در تحلیل تصویر.',
+                'reason' => $result['reason'] ?? 'unknown',
                 'matches' => $result['matches'] ?? [],
             ];
         }

@@ -47,7 +47,11 @@ class LayoutVisionExtractor extends BaseVisionAnalyzer
 
         $response = $this->callVisionModel($base64);
         if ($response === null || empty($response['content'])) {
-            return ['ok' => false, 'message' => 'پاسخی از مدل Vision دریافت نشد.'];
+            return [
+                'ok' => false,
+                'message' => $this->lastErrorMessage(),
+                'reason' => $this->lastError()['reason'] ?? 'empty',
+            ];
         }
 
         $data = $this->parseLayoutJson($response['content']);
@@ -89,18 +93,32 @@ class LayoutVisionExtractor extends BaseVisionAnalyzer
 
         $start = strpos($content, '{');
         $end = strrpos($content, '}');
-        if ($start === false || $end === false || $end <= $start) {
+        if ($start === false) {
             Log::warning('LayoutVisionExtractor: no JSON object in response.', ['content' => mb_substr($content, 0, 500)]);
 
             return null;
         }
 
-        $data = json_decode(substr($content, $start, $end - $start + 1), true);
+        // پاسخ قطع‌شده ممکن است اصلاً «}» نداشته باشد؛ در آن صورت مستقیم به بازیابی می‌رویم.
+        $data = ($end !== false && $end > $start)
+            ? json_decode(substr($content, $start, $end - $start + 1), true)
+            : null;
         if (! is_array($data)) {
-            Log::warning('LayoutVisionExtractor: invalid JSON.', ['content' => mb_substr($content, 0, 500)]);
+            // پاسخ ناقص (مثلاً قطع‌شده در سقف توکن) → بازیابی هر چه قابل خواندن است.
+            $data = $this->salvage($content);
+            Log::warning('LayoutVisionExtractor: invalid JSON, salvaged.', [
+                'length' => mb_strlen($content),
+                'salvaged_buildings' => count($data['buildings'] ?? []),
+                'head' => mb_substr($content, 0, 200),
+                'tail' => mb_substr($content, -200),
+            ]);
 
-            return null;
+            if ($data === null) {
+                return null;
+            }
         }
+
+        $data = $this->expandCompact($data);
 
         $buildings = [];
         foreach ((array) ($data['buildings'] ?? []) as $b) {
@@ -159,6 +177,148 @@ class LayoutVisionExtractor extends BaseVisionAnalyzer
         ];
     }
 
+    /**
+     * تبدیل اسکیمای فشرده (th/p/c/thb/b/w با آرایه) به اسکیمای کامل؛ اسکیمای کامل دست‌نخورده می‌ماند.
+     */
+    protected function expandCompact(array $data): array
+    {
+        if (array_key_exists('th', $data) && ! array_key_exists('town_hall_level', $data)) {
+            $data['town_hall_level'] = $data['th'];
+        }
+        if (isset($data['p']) && ! isset($data['perspective'])) {
+            $data['perspective'] = $data['p'] === 'top' ? 'top_down' : 'isometric';
+        }
+        if (isset($data['c']) && is_array($data['c']) && count($data['c']) >= 8 && ! isset($data['grid_corners'])) {
+            $c = array_values($data['c']);
+            $data['grid_corners'] = [
+                'top' => ['x' => $c[0], 'y' => $c[1]],
+                'right' => ['x' => $c[2], 'y' => $c[3]],
+                'bottom' => ['x' => $c[4], 'y' => $c[5]],
+                'left' => ['x' => $c[6], 'y' => $c[7]],
+            ];
+        }
+        if (isset($data['thb']) && is_array($data['thb']) && count($data['thb']) >= 4 && ! isset($data['town_hall_box'])) {
+            $t = array_values($data['thb']);
+            $data['town_hall_box'] = ['x' => $t[0], 'y' => $t[1], 'w' => $t[2], 'h' => $t[3]];
+        }
+        if (isset($data['b']) && is_array($data['b']) && ! isset($data['buildings'])) {
+            $data['buildings'] = array_map(fn ($row) => $this->rowToBuilding($row), $data['b']);
+        }
+        if (isset($data['w']) && is_array($data['w']) && ! isset($data['walls'])) {
+            $data['walls'] = array_map(fn ($row) => $this->rowToWall($row), $data['w']);
+        }
+
+        return $data;
+    }
+
+    /** @param  mixed  $row */
+    protected function rowToBuilding($row): array
+    {
+        if (is_array($row) && array_is_list($row) && count($row) >= 3) {
+            $b = ['type' => $row[0], 'x' => $row[1], 'y' => $row[2]];
+            if (isset($row[3]) && is_numeric($row[3])) {
+                $b['level'] = $row[3];
+            }
+
+            return $b;
+        }
+
+        return is_array($row) ? $row : [];
+    }
+
+    /** @param  mixed  $row */
+    protected function rowToWall($row): array
+    {
+        if (is_array($row) && array_is_list($row) && count($row) >= 4) {
+            return ['x1' => $row[0], 'y1' => $row[1], 'x2' => $row[2], 'y2' => $row[3]];
+        }
+
+        return is_array($row) ? $row : [];
+    }
+
+    /**
+     * بازیابی داده از JSON ناقص (قطع‌شده در سقف توکن): فیلدهای اسکالر و هر ساختمان/دیوار کامل با regex.
+     * هر دو اسکیما (فشرده و کامل) پشتیبانی می‌شود.
+     */
+    protected function salvage(string $content): ?array
+    {
+        $data = [];
+
+        if (preg_match('/"(?:th|town_hall_level)"\s*:\s*(\d+)/', $content, $m)) {
+            $data['town_hall_level'] = (int) $m[1];
+        }
+        if (preg_match('/"p"\s*:\s*"(iso|top)"/', $content, $m)) {
+            $data['perspective'] = $m[1] === 'top' ? 'top_down' : 'isometric';
+        } elseif (preg_match('/"perspective"\s*:\s*"(isometric|top_down)"/', $content, $m)) {
+            $data['perspective'] = $m[1];
+        }
+        if (preg_match('/"c"\s*:\s*(\[[-\d.,\s]+\])/', $content, $m)) {
+            $c = json_decode($m[1], true);
+            if (is_array($c) && count($c) >= 8) {
+                $data['grid_corners'] = [
+                    'top' => ['x' => $c[0], 'y' => $c[1]], 'right' => ['x' => $c[2], 'y' => $c[3]],
+                    'bottom' => ['x' => $c[4], 'y' => $c[5]], 'left' => ['x' => $c[6], 'y' => $c[7]],
+                ];
+            }
+        } elseif (preg_match('/"grid_corners"\s*:\s*(\{(?:[^{}]|\{[^{}]*\})*\})/', $content, $m)) {
+            $corners = json_decode($m[1], true);
+            $data['grid_corners'] = is_array($corners) ? $corners : null;
+        }
+        if (preg_match('/"thb"\s*:\s*(\[[-\d.,\s]+\])/', $content, $m)) {
+            $t = json_decode($m[1], true);
+            if (is_array($t) && count($t) >= 4) {
+                $data['town_hall_box'] = ['x' => $t[0], 'y' => $t[1], 'w' => $t[2], 'h' => $t[3]];
+            }
+        } elseif (preg_match('/"town_hall_box"\s*:\s*(\{[^{}]*\})/', $content, $m)) {
+            $box = json_decode($m[1], true);
+            $data['town_hall_box'] = is_array($box) ? $box : null;
+        }
+
+        $buildings = [];
+        $walls = [];
+
+        // اسکیمای فشرده: ["type",x,y(,level)] و بعد از "w": [x1,y1,x2,y2]
+        if (preg_match_all('/\[\s*"([a-z_]+)"\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)(?:\s*,\s*(\d+))?\s*\]/', $content, $rows, PREG_SET_ORDER)) {
+            foreach ($rows as $r) {
+                $b = ['type' => $r[1], 'x' => (float) $r[2], 'y' => (float) $r[3]];
+                if (isset($r[4]) && $r[4] !== '') {
+                    $b['level'] = (int) $r[4];
+                }
+                $buildings[] = $b;
+            }
+        }
+        if (preg_match('/"w"\s*:\s*\[(.*)$/s', $content, $wm)
+            && preg_match_all('/\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]/', $wm[1], $rows, PREG_SET_ORDER)) {
+            foreach ($rows as $r) {
+                $walls[] = ['x1' => (float) $r[1], 'y1' => (float) $r[2], 'x2' => (float) $r[3], 'y2' => (float) $r[4]];
+            }
+        }
+
+        // اسکیمای کامل: اشیاء {type,x,y} و {x1,y1,x2,y2}
+        if ($buildings === [] && preg_match_all('/\{[^{}]*\}/', $content, $objects)) {
+            foreach ($objects[0] as $raw) {
+                $obj = json_decode($raw, true);
+                if (! is_array($obj)) {
+                    continue;
+                }
+                if (isset($obj['type'], $obj['x'], $obj['y'])) {
+                    $buildings[] = $obj;
+                } elseif (isset($obj['x1'], $obj['y1'], $obj['x2'], $obj['y2'])) {
+                    $walls[] = $obj;
+                }
+            }
+        }
+
+        if ($buildings === []) {
+            return null;
+        }
+
+        $data['buildings'] = $buildings;
+        $data['walls'] = $walls;
+
+        return $data;
+    }
+
     protected function systemPrompt(): string
     {
         $types = $this->catalog->promptTypeList();
@@ -166,36 +326,20 @@ class LayoutVisionExtractor extends BaseVisionAnalyzer
         $grid = $this->catalog->gridSize();
 
         $prompt = <<<'PROMPT'
-You are a Clash of Clans __VILLAGE__ layout digitizer. The user provides a screenshot or picture of a base. Return ONLY a JSON object (no markdown, no code fences, no commentary) with exactly this structure:
+You are a Clash of Clans __VILLAGE__ layout digitizer. The user provides a screenshot or picture of a base. Return ONLY a JSON object (no markdown, no code fences, no commentary) with exactly this COMPACT schema. Angle brackets are placeholders you must replace with values measured from THIS image; never copy placeholder text or invent numbers.
 
-{
-  "town_hall_level": 16,
-  "perspective": "isometric",
-  "grid_corners": {
-    "top": {"x": 50.0, "y": -8.0},
-    "right": {"x": 118.0, "y": 48.0},
-    "bottom": {"x": 50.0, "y": 104.0},
-    "left": {"x": -18.0, "y": 48.0}
-  },
-  "town_hall_box": {"x": 46.0, "y": 44.0, "w": 9.0, "h": 8.0},
-  "buildings": [
-    {"type": "town_hall", "x": 50.5, "y": 48.0, "level": 16},
-    {"type": "cannon", "x": 31.0, "y": 22.5}
-  ],
-  "walls": [
-    {"x1": 20.0, "y1": 30.0, "x2": 40.0, "y2": 20.0}
-  ]
-}
+{"th":<int or null>,"p":"iso"|"top","c":[<top_x>,<top_y>,<right_x>,<right_y>,<bottom_x>,<bottom_y>,<left_x>,<left_y>]|null,"thb":[<x>,<y>,<w>,<h>]|null,"b":[["<type>",<x>,<y>],["<type>",<x>,<y>,<level>]],"w":[[<x1>,<y1>,<x2>,<y2>]]}
+
+Keys: "th" = Town Hall level. "p" = perspective ("iso" for in-game screenshots, "top" for flat diagrams). "c" = the 4 corners of the whole __GRID__x__GRID__ buildable village diamond in order top, right, bottom, left. "thb" = bounding box of the Town Hall (or Builder Hall) sprite (x,y top-left; w,h size), used as scale reference (4x4 tiles). "b" = one entry per building INSTANCE as [type, x, y] or [type, x, y, level]. "w" = straight wall segments as [x1, y1, x2, y2] between the centres of the first and last wall piece.
 
 Rules:
-- All coordinates are PERCENTAGES of the image width (x) and height (y). The top-left corner of the image is (0,0). Values may be outside 0..100 when a point lies outside the visible image (for example the grid corners of a cropped screenshot).
-- "grid_corners": the four corners of the whole __GRID__x__GRID__ buildable village diamond (the green grass area, excluding the outer forest/border). "top" is the corner at the top of the screen, "right" on the right, and so on. If the screenshot is cropped, extrapolate them from the visible edges and the size of the buildings; if you truly cannot, set "grid_corners": null.
-- "town_hall_box": bounding box (x,y = top-left, w,h = size, all percentages) of the Town Hall (or Builder Hall) sprite. It is used as a scale reference (its footprint is 4x4 tiles). Set null if it is not visible.
-- "perspective": "isometric" for in-game screenshots (default) or "top_down" for flat diagrams.
-- "buildings": one entry per building INSTANCE (list every cannon, archer tower, storage, collector, camp separately). x,y is the centre of the building's footprint on the ground (the base of the sprite, not its top). Allowed "type" values: __TYPES__. Use "level" only when it is clearly readable, otherwise omit it.
-- "walls": straight wall segments as line segments between the centres of their first and last wall piece. Merge consecutive wall pieces in a straight line into one segment. Return an empty array if walls are not visible.
+- All coordinates are PERCENTAGES of the image width (x) and height (y), rounded to integers. The top-left corner of the image is (0,0). Values may be outside 0..100 when a point lies outside the visible image (for example the corners of a cropped screenshot).
+- If the screenshot is cropped, extrapolate the corners from the visible edges and building sizes; if you truly cannot, set "c": null. Set "thb": null if the hall is not visible.
+- x,y of a building is the centre of its footprint on the ground (base of the sprite, not its top). Allowed types: __TYPES__. Add the level only when clearly readable.
+- Merge consecutive wall pieces in a straight line into one segment. Use an empty array if walls are not visible.
 - Do NOT include traps, decorations, obstacles, buildings of the other village or anything outside the village grid.
-- Be complete: a Town Hall 12+ base usually has 60-80 buildings excluding walls. Never invent buildings you cannot see.
+- Be complete: a Town Hall 12+ base usually has 60-80 buildings excluding walls. List every cannon, archer tower, storage, collector and camp separately. Never invent buildings you cannot see.
+- Output MINIFIED JSON on a single line, "b" before "w".
 PROMPT;
 
         return str_replace(['__TYPES__', '__VILLAGE__', '__GRID__'], [$types, $village, (string) $grid], $prompt);
@@ -208,7 +352,9 @@ PROMPT;
 
     protected function maxTokens(): int
     {
-        return 6000;
+        // provider پشت nabu-vision این عدد را «کل بودجه» (ورودی + تصویر ≈ ۶٬۵۰۰ توکن + خروجی) حساب می‌کند؛
+        // با ۸۰۰۰ فقط ~۲۰۰ توکن خروجی می‌ماند. ۲۴۰۰۰ برای ~۸۰ ساختمان + دیوارها کافی است.
+        return 24000;
     }
 
     protected function temperature(): float

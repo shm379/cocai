@@ -26,7 +26,11 @@ class DeckVisionExtractor extends BaseVisionAnalyzer
 
         $response = $this->callVisionModel($base64);
         if ($response === null || empty($response['content'])) {
-            return ['ok' => false, 'message' => 'پاسخی از مدل Vision دریافت نشد.'];
+            return [
+                'ok' => false,
+                'message' => $this->lastErrorMessage(),
+                'reason' => $this->lastError()['reason'] ?? 'empty',
+            ];
         }
 
         $data = $this->parseDeckJson($response['content']);
@@ -58,7 +62,21 @@ class DeckVisionExtractor extends BaseVisionAnalyzer
 
         $data = json_decode(substr($content, $start, $end - $start + 1), true);
         if (! is_array($data)) {
-            return null;
+            // پاسخ ناقص → هر شیء کارت کامل را جدا بردار.
+            $cards = [];
+            if (preg_match_all('/\{[^{}]*"name"\s*:\s*"[^"]+"[^{}]*\}/', $content, $objects)) {
+                foreach ($objects[0] as $raw) {
+                    $obj = json_decode($raw, true);
+                    if (is_array($obj)) {
+                        $cards[] = $obj;
+                    }
+                }
+            }
+            Log::warning('DeckVisionExtractor: invalid JSON, salvaged.', ['salvaged_cards' => count($cards), 'head' => mb_substr($content, 0, 200)]);
+            if ($cards === []) {
+                return null;
+            }
+            $data = ['cards' => $cards];
         }
 
         $cards = [];
@@ -88,16 +106,9 @@ class DeckVisionExtractor extends BaseVisionAnalyzer
     protected function systemPrompt(): string
     {
         return <<<'PROMPT'
-You are a Clash Royale deck reader. The user provides an image showing a deck: an in-game deck slot, a battle/end screen, a RoyaleAPI/DeckShop page or any picture with card portraits. Return ONLY a JSON object (no markdown, no code fences, no commentary):
+You are a Clash Royale deck reader. The user provides an image showing a deck: an in-game deck slot, a battle/end screen, a RoyaleAPI/DeckShop page or any picture with card portraits. Return ONLY a JSON object (no markdown, no code fences, no commentary) with exactly this schema (angle brackets are placeholders; fill them from THIS image, never invent):
 
-{
-  "cards": [
-    {"slot": 1, "name": "Hog Rider", "evolution": false, "level": 14},
-    {"slot": 2, "name": "The Log", "evolution": false}
-  ],
-  "tower_troop": "Tower Princess",
-  "source": "in_game"
-}
+{"cards":[{"slot":<1-8>,"name":"<official English card name>","evolution":<true|false>,"level":<int, optional>}],"tower_troop":"<name>"|null,"source":"in_game"|"website"|"unknown"}
 
 Rules:
 - List the cards of ONE deck only, in reading order (left to right, then top to bottom), at most 8 entries. If two decks are visible (e.g. a battle screen), use the deck at the bottom/left which belongs to the player.
@@ -107,6 +118,7 @@ Rules:
 - "tower_troop": the tower troop if visible (Tower Princess, Cannoneer, Dagger Duchess, Royal Chef), otherwise null.
 - "source": "in_game", "website" or "unknown".
 - Never invent cards you cannot see. If unsure between two cards, pick the most likely and keep going.
+- Output MINIFIED JSON on a single line (no newlines, no comments).
 PROMPT;
     }
 
@@ -117,7 +129,8 @@ PROMPT;
 
     protected function maxTokens(): int
     {
-        return 800;
+        // provider توکن تصویر (~۶٬۵۰۰ برای ۱۰۲۴px) را هم از همین سقف کم می‌کند.
+        return 12000;
     }
 
     protected function temperature(): float

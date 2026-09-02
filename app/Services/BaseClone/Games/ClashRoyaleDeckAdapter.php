@@ -56,7 +56,7 @@ class ClashRoyaleDeckAdapter implements GameAdapter
     {
         $extracted = $this->vision->extractDeck($image);
         if (! ($extracted['ok'] ?? false)) {
-            return ['ok' => false, 'message' => $extracted['message'] ?? 'خطا در خواندن دک.', 'matches' => []];
+            return ['ok' => false, 'message' => $extracted['message'] ?? 'خطا در خواندن دک.', 'reason' => $extracted['reason'] ?? 'parse', 'matches' => []];
         }
 
         $cards = [];
