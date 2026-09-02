@@ -151,11 +151,11 @@ class BaseVisionAnalyzer
     }
 
     /**
-     * فراخوانی مدل Vision از طریق NabuGate (OpenAI-compatible).
+     * پرامپت سیستم؛ زیرکلاس‌ها می‌توانند آن را بازنویسی کنند.
      */
-    protected function callVisionModel(string $base64Image): ?array
+    protected function systemPrompt(): string
     {
-        $systemPrompt = <<<'PROMPT'
+        return <<<'PROMPT'
 You are a Clash of Clans base layout analyzer. Look at the provided base screenshot and return ONLY a JSON object with no markdown formatting, no explanation, and no code blocks.
 
 The JSON must have this exact structure:
@@ -176,6 +176,32 @@ eagle_artillery, scattershot, monolith, builder_hut.
 
 Only include buildings you are reasonably confident about. It is better to return fewer accurate buildings than many incorrect ones.
 PROMPT;
+    }
+
+    /**
+     * متن درخواست کاربر که همراه تصویر ارسال می‌شود.
+     */
+    protected function userPrompt(): string
+    {
+        return 'Analyze this Clash of Clans base layout and return the building coordinates as JSON.';
+    }
+
+    protected function maxTokens(): int
+    {
+        return 1500;
+    }
+
+    protected function temperature(): float
+    {
+        return 0.2;
+    }
+
+    /**
+     * فراخوانی مدل Vision از طریق NabuGate (OpenAI-compatible).
+     */
+    protected function callVisionModel(string $base64Image): ?array
+    {
+        $systemPrompt = $this->systemPrompt();
 
         $payload = [
             'model' => $this->model,
@@ -189,7 +215,7 @@ PROMPT;
                     'content' => [
                         [
                             'type' => 'text',
-                            'text' => 'Analyze this Clash of Clans base layout and return the building coordinates as JSON.',
+                            'text' => $this->userPrompt(),
                         ],
                         [
                             'type' => 'image_url',
@@ -200,8 +226,8 @@ PROMPT;
                     ],
                 ],
             ],
-            'temperature' => 0.2,
-            'max_tokens' => 1500,
+            'temperature' => $this->temperature(),
+            'max_tokens' => $this->maxTokens(),
         ];
 
         foreach ([1, 2] as $attempt) {

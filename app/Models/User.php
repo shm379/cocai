@@ -154,6 +154,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(StrategyLabSession::class);
     }
 
+    public function baseClones()
+    {
+        return $this->hasMany(BaseClone::class);
+    }
+
     /**
      * Increment task completion streak based on calendar days.
      * Resets if last completion was before yesterday.

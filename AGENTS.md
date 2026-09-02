@@ -9,6 +9,7 @@
 - Free-form Persian chatbot coach
 - Progress / "rush" analysis based on real hero & lab data
 - Town Hall and Builder Hall base map browser (sourced from Clasher.us)
+- AI Cloner (multi-game): upload a screenshot → Clash of Clans Home/Builder layout reconstruction (44×44, public share link, in-game copy link only via archive match) or Clash Royale deck reading → official deck copy link
 
 ## Architecture
 
@@ -30,6 +31,9 @@
 - `app/Services/ChatbotService.php` — LLM calls grounded by `ProgressionService` facts.
 - `app/Services/ClashOfClansService.php` — fetches & caches player data, manages trophy logs.
 - `app/Console/Commands/FetchClasher.php` — imports maps, units, and guides from Clasher.us.
+- `app/Services/BaseClone/` — Cloner engine: `Games/GameRegistry` + adapters (`CocHomeAdapter`, `CocBuilderAdapter`, `ClashRoyaleDeckAdapter`), `LayoutGridMapper` (image % → 44×44 grid, deterministic), `BuildingCatalog`/`BuilderBaseCatalog` (footprints/labels), `CardCatalog` (Clash Royale card ids from `database/data/cr/cards.json`), `ImageHasher` + `LayoutMatcher` (dHash match against `maps.image_hash`), `BaseCloneService` (orchestration). Add a new Supercell game by implementing `GameAdapter` and registering it in `GameRegistry`.
+- `app/Services/AI/LayoutVisionExtractor.php` / `DeckVisionExtractor.php` — full-layout and deck Vision prompts (extend `BaseVisionAnalyzer`).
+- `app/Http/Controllers/BaseCloneController.php` — `/api/base-clones` + public `/base/{slug}` page (`resources/js/Pages/BaseClone/Show.vue`).
 - `resources/js/Pages/Dashboard.vue` — main SPA page.
 - `resources/js/Components/Dashboard/` — reusable dashboard widgets.
 
@@ -40,6 +44,7 @@
 3. **`MapCrawlerService` is a stub**: Do not rely on `MapController::crawlMaps` for production data; use `php artisan fetch:clasher`.
 4. **`PlayerTagForm.vue` is empty**: The player-tag form is currently inline inside `Dashboard.vue`.
 5. **No node_modules by default**: Run `npm install` before `npm run dev` / `npm run build`.
+6. **In-game layout links cannot be synthesized**: `link.clashofclans.com/...action=OpenLayout&id=TH16:HV:<32 chars>` is a 24-byte opaque reference to a layout stored on Supercell's servers. The Base Cloner therefore only returns a `copy_link` when the uploaded image matches an archived map (`maps.image_hash`, populated by `maps:hash`).
 
 ## Development Commands
 
@@ -61,6 +66,12 @@ php artisan update:game_profiles
 
 # Import maps/units/guides from Clasher.us
 php artisan fetch:clasher
+
+# Compute perceptual hashes for archived map images (needed for Base Cloner in-game link matching)
+php artisan maps:hash
+
+# Refresh Clash Royale card ids (official API if CLASH_ROYALE_API_TOKEN is set, else RoyaleAPI data)
+php artisan cr:cards
 ```
 
 ## Environment Variables

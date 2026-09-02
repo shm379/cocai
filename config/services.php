@@ -41,6 +41,10 @@ return [
         'model' => env('NABU_MODEL', 'openrouter2/google/gemini-2.5-flash'),
     ],
 
+    'clash_royale' => [
+        'token' => env('CLASH_ROYALE_API_TOKEN'),
+    ],
+
     'clash' => [
         'api_base' => env('CLASH_API_BASE') ?: 'https://api.clashofclans.com/v1/players/%23',
         'api_token' => env('CLASH_API_TOKEN') ?: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImMxZGUyZDMwLWNkYWUtNGZlMy04MmZmLWI5NDVkYTRmZGE2ZSIsImlhdCI6MTc4NjkyMDk1Nywic3ViIjoiZGV2ZWxvcGVyL2UwNThjYWNiLTMyOGMtYzM2Zi1lZTBiLWQ3OTY1MDNjZDdiZiIsInNjb3BlcyI6WyJjbGFzaCJdLCJsaW1pdHMiOlt7InRpZXIiOiJkZXZlbG9wZXIvc2lsdmVyIiwidHlwZSI6InRocm90dGxpbmcifSx7ImNpZHJzIjpbIjY1LjEwOS4yMTkuMjUyIl0sInR5cGUiOiJjbGllbnQifV19.S0d_Np6ES9tpCXk2kjareeBOtjxPCulkF3FMauZKuyddEi8jNFupMZc0y2-glzZJJNlC30hh7uMvybSNgyNrzw',

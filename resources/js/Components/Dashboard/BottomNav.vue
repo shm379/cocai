@@ -36,6 +36,7 @@ export default {
                 { id: 'clanOverview', label: 'کلن و رید', icon: '🛡️' },
                 { id: 'troops', label: 'لَب و نیروها', icon: '🧪' },
                 { id: 'th_maps', label: 'نقشه‌ها', icon: '🗺️' },
+                { id: 'cloner', label: 'کلونر AI', icon: '🧬' },
                 { id: 'favorites', label: 'نشان‌شده‌ها', icon: '❤️' },
                 { id: 'builderBase', label: 'بیلدر بیس', icon: '🔨' },
                 { id: 'assistant', label: 'مربی AI', icon: '🤖' },

@@ -146,6 +146,20 @@
 
                     <!-- تب ۶: نقشه‌ها و بیس‌ها (Maps) -->
                     <div v-else-if="activeTab === 'th_maps'" class="space-y-6">
+                        <!-- ورودی سریع به موتور بازسازی از روی عکس -->
+                        <button
+                            type="button"
+                            @click="activeTab = 'cloner'"
+                            class="w-full text-right p-4 rounded-2xl bg-gradient-to-l from-fuchsia-600/20 via-purple-600/10 to-cyan-500/10 border border-fuchsia-500/30 hover:border-fuchsia-400/60 transition flex items-center gap-3"
+                        >
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-cyan-400 flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-fuchsia-500/20">🧬</div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-black text-white">بازسازی بیس یا دک از روی عکس</p>
+                                <p class="text-[11px] text-gray-300">عکس بده، AI همان را می‌سازد و لینک کپی می‌دهد — کلش آف کلنز و کلش رویال</p>
+                            </div>
+                            <span class="text-gray-400 text-lg">←</span>
+                        </button>
+
                         <div class="p-4 bg-gray-800 rounded-xl shadow-lg border border-gray-700">
                             <h3 class="text-base font-bold text-white mb-3">نقشه‌های تاون‌هال (Town Hall Bases)</h3>
                             <TownHallFilter
@@ -191,6 +205,11 @@
                     <!-- تب ۸: دستیار هوش مصنوعی (AI Coach) -->
                     <div v-else-if="activeTab === 'assistant'" class="space-y-6">
                         <AiAssistant :gameProfile="gameProfile" />
+                    </div>
+
+                    <!-- تب: موتور بازسازی از روی عکس (AI Cloner) -->
+                    <div v-else-if="activeTab === 'cloner'" class="space-y-6">
+                        <BaseClonerHub />
                     </div>
 
                     <!-- تب ۹: بیس‌های نشان‌شده (Favorites) -->
@@ -284,6 +303,7 @@ import MobileLiveAttackCompanion from "@/Components/Dashboard/MobileLiveAttackCo
 import AndroidCompanionControlCenter from "@/Components/Dashboard/AndroidCompanionControlCenter.vue"
 import ClanWarRoomHub from "@/Components/Dashboard/ClanWarRoomHub.vue"
 import FavoritesHub from "@/Components/Dashboard/FavoritesHub.vue"
+import BaseClonerHub from "@/Components/Dashboard/BaseClonerHub.vue"
 
 export default {
     props: {
@@ -334,6 +354,7 @@ export default {
         AndroidCompanionControlCenter,
         ClanWarRoomHub,
         FavoritesHub,
+        BaseClonerHub,
 
         GameSwitcherBar,
         ClashRoyaleHub,
@@ -386,6 +407,15 @@ export default {
             countdown: 15,
             timer: null,
             showCountdown: false,
+        }
+    },
+    mounted() {
+        // دیپ‌لینک تب: /dashboard?tab=cloner یا /dashboard#cloner
+        const params = new URLSearchParams(window.location.search)
+        const tab = params.get('tab') || (window.location.hash ? window.location.hash.slice(1) : '')
+        const valid = ['profile', 'strategy', 'heroes', 'clanOverview', 'troops', 'th_maps', 'cloner', 'favorites', 'builderBase', 'assistant']
+        if (tab && valid.includes(tab)) {
+            this.activeTab = tab
         }
     },
     computed: {

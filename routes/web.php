@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BaseCloneController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MapController;
@@ -186,6 +187,17 @@ Route::middleware('auth')->group(function () {
 // TODO: بهتر است به یک کامند Artisan یا میدلور admin محدود شود.
 Route::get('/map', [MapController::class, 'crawlMaps'])->middleware('auth')->name('map.crawl');
 
+// بازسازی بیس از روی تصویر (Base Cloner) — آپلود عکس، استخراج چیدمان با AI و لینک اشتراک‌گذاری
+Route::middleware('auth')->group(function () {
+    Route::get('/api/base-clones', [BaseCloneController::class, 'index'])->name('base-clone.index');
+    Route::get('/api/base-clones/games', [BaseCloneController::class, 'games'])->name('base-clone.games');
+    Route::post('/api/base-clones', [BaseCloneController::class, 'store'])
+        ->middleware('throttle:10,1')->name('base-clone.store');
+    Route::delete('/api/base-clones/{clone}', [BaseCloneController::class, 'destroy'])->name('base-clone.destroy');
+});
+// صفحهٔ عمومی بیس بازسازی‌شده (قابل اشتراک بدون ورود)
+Route::get('/base/{clone}', [BaseCloneController::class, 'show'])->name('base-clone.show');
+
 // علاقه‌مندی‌های نقشه
 Route::middleware('auth')->group(function () {
     Route::post('/maps/{map}/favorite', [MapController::class, 'toggleFavorite'])->name('maps.favorite');
@@ -198,3 +210,14 @@ Route::match(['get', 'post'], '/subscription/callback/{gateway}', [\App\Http\Con
     ->name('subscription.callback');
 
 require __DIR__.'/auth.php';
+
+// TEMP-DEV-PREVIEW-START: مسیر موقت ورود برای بررسی بصری محلی؛ باید حذف شود
+if (app()->environment('local')) {
+    Route::get('/__dev-preview-login/{id}', function (int $id) {
+        abort_unless(request()->ip() === '127.0.0.1', 403);
+        \Illuminate\Support\Facades\Auth::loginUsingId($id);
+
+        return redirect()->away('http://localhost:8765/dashboard?tab=cloner');
+    });
+}
+// TEMP-DEV-PREVIEW-END
