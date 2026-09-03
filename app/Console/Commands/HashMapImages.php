@@ -3,9 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Map;
-use App\Services\BaseClone\ImageHasher;
+use App\Services\MapSources\MapImageHasher;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Http;
 
 /**
  * محاسبهٔ هش ادراکی تصویر نقشه‌های آرشیو تا Base Cloner بتواند تصویر آپلودی را
@@ -20,7 +19,7 @@ class HashMapImages extends Command
 
     protected $description = 'محاسبهٔ هش ادراکی (dHash) تصویر نقشه‌ها برای تطبیق در Base Cloner';
 
-    public function handle(ImageHasher $hasher): int
+    public function handle(MapImageHasher $hasher): int
     {
         $query = Map::query()
             ->where(function ($q) {
@@ -58,27 +57,7 @@ class HashMapImages extends Command
         $failed = 0;
 
         foreach ($maps as $map) {
-            // تصویر کامل همان فریم اسکرین‌شات کاربر است (فاصلهٔ هش ۰)؛ بندانگشتی ۳۵۰px برش/مقیاس دیگری دارد (فاصله ~۱۲).
-            // img.clasher.us مسیر /fullo/ را پاسخ نمی‌دهد ولی /full/ را می‌دهد.
-            $hash = null;
-            foreach ($this->candidateUrls($map) as $url) {
-                try {
-                    $response = Http::withHeaders(['User-Agent' => 'Mozilla/5.0 (cocai maps:hash)'])
-                        ->timeout(25)->connectTimeout(8)->get($url);
-                    if ($response->ok() && strlen($response->body()) > 2000) {
-                        $hash = $hasher->hashBinary($response->body());
-                    }
-                } catch (\Throwable $e) {
-                    $hash = null;
-                }
-                if ($hash !== null) {
-                    break;
-                }
-            }
-
-            if ($hash !== null) {
-                $map->image_hash = $hash;
-                $map->save();
+            if ($hasher->hashMap($map)) {
                 $ok++;
             } else {
                 $failed++;
@@ -94,22 +73,4 @@ class HashMapImages extends Command
         return self::SUCCESS;
     }
 
-    /**
-     * ترتیب تلاش: تصویر کامل (full)، سپس image_url خام، در نهایت بندانگشتی.
-     *
-     * @return array<int, string>
-     */
-    protected function candidateUrls(Map $map): array
-    {
-        $urls = [];
-        if ($map->image_url) {
-            $urls[] = str_replace('/images/fullo/', '/images/full/', $map->image_url);
-            $urls[] = $map->image_url;
-        }
-        if ($map->thumbnail_url) {
-            $urls[] = $map->thumbnail_url;
-        }
-
-        return array_values(array_unique($urls));
-    }
 }

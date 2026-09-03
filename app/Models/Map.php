@@ -46,10 +46,17 @@ class Map extends Model
         'download_count',
         'like_count',
         'report_count',
+        'source',
+        'external_id',
+        'category',
+        'published_at',
+        'fetched_at',
         'created_at',
     ];
 
     protected $casts = [
+        'published_at' => 'datetime',
+        'fetched_at' => 'datetime',
         'layout_signature' => 'array',
         'signature_computed_at' => 'datetime',
     ];
