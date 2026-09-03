@@ -415,3 +415,29 @@ it('hides placeholder links from the public clone payload', function () {
 
     expect($deck->toPublicArray()['copy_link'])->toBe('https://link.clashroyale.com/deck/en?deck=26000000;26000001');
 });
+
+it('marks only a clearly closest hash match as confident', function () {
+    $query = '0000000000000000';
+    $exact = Map::factory()->create(['image_hash' => '0000000000000000', 'copy_link' => SIG_VALID_LINK]);
+    $near6 = Map::factory()->create(['image_hash' => '000000000000003f', 'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH15:WB:CCCCKQAAAAHKhX8bPxJyNAX1FJlbFuFy']);
+    $near9 = Map::factory()->create(['image_hash' => '00000000000001ff', 'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH15:WB:DDDDKQAAAAHKhX8bPxJyNAX1FJlbFuFy']);
+
+    $matches = app(LayoutMatcher::class)->findMatches($query, null, 5);
+
+    expect($matches[0]['id'])->toBe($exact->id)
+        ->and($matches[0]['confident'])->toBeTrue()
+        ->and(collect($matches)->firstWhere('id', $near6->id)['confident'])->toBeFalse()
+        ->and(collect($matches)->firstWhere('id', $near9->id)['confident'])->toBeFalse();
+});
+
+it('refuses hash confidence when two archive maps are almost equally close', function () {
+    $query = '0000000000000000';
+    Map::factory()->create(['image_hash' => '0000000000000003', 'copy_link' => SIG_VALID_LINK]); // فاصله ۲
+    Map::factory()->create(['image_hash' => '0000000000000007', 'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH15:WB:EEEEKQAAAAHKhX8bPxJyNAX1FJlbFuFy']); // فاصله ۳
+
+    $matches = app(LayoutMatcher::class)->findMatches($query, null, 5);
+
+    expect($matches)->toHaveCount(2)
+        ->and($matches[0]['confident'])->toBeFalse()
+        ->and($matches[1]['confident'])->toBeFalse();
+});

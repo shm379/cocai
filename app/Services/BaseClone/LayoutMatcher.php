@@ -20,7 +20,11 @@ use App\Models\Map;
 class LayoutMatcher
 {
     /** فاصلهٔ همینگی که «همان بیس» محسوب می‌شود. */
-    public const CONFIDENT_DISTANCE = 10;
+    // با آرشیو ۱۳ هزارتایی، بیس‌های متفاوتِ یک سایت تا فاصلهٔ ۸–۱۰ بیت شبیه هم می‌شوند؛ «مطمئن» فقط تا ۴ بیت.
+    public const CONFIDENT_DISTANCE = 4;
+
+    /** بهترین تطبیق هش فقط وقتی مطمئن است که دست‌کم این‌قدر از نفر دوم جلوتر باشد. */
+    public const HASH_MARGIN = 4;
 
     /** حداکثر فاصله برای نمایش به‌عنوان «مشابه احتمالی». */
     public const MAX_DISTANCE = 16;
@@ -121,6 +125,20 @@ class LayoutMatcher
                 ];
             }
         });
+
+        // اطمینان مبتنی بر هش باید یکتا باشد: اگر دو نقشه به یک اندازه نزدیک باشند، هیچ‌کدام «همین بیس» نیست.
+        $hashDistances = array_values(array_filter(array_map(fn ($m) => $m['distance'], $matches), fn ($d) => $d !== null));
+        sort($hashDistances);
+        $best = $hashDistances[0] ?? null;
+        $second = $hashDistances[1] ?? null;
+        $hashUnique = $best !== null && ($second === null || $second - $best >= self::HASH_MARGIN);
+
+        foreach ($matches as &$m) {
+            $hashConfident = $m['distance'] !== null && $m['distance'] <= self::CONFIDENT_DISTANCE && $hashUnique && $m['distance'] === $best;
+            $sigConfident = $m['signature_score'] !== null && LayoutSignature::isConfident($m['signature_score']);
+            $m['confident'] = $hashConfident || $sigConfident;
+        }
+        unset($m);
 
         usort($matches, function ($a, $b) {
             return $b['similarity'] <=> $a['similarity']
