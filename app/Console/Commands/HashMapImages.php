@@ -15,7 +15,8 @@ class HashMapImages extends Command
 {
     protected $signature = 'maps:hash
                             {--force : محاسبهٔ مجدد برای نقشه‌هایی که قبلاً هش دارند}
-                            {--limit=0 : حداکثر تعداد نقشه (۰ = همه)}';
+                            {--limit=0 : حداکثر تعداد نقشه (۰ = همه)}
+                            {--shard= : تقسیم کار بین چند فرایند، به شکل k/n (مثلاً 0/4)}';
 
     protected $description = 'محاسبهٔ هش ادراکی (dHash) تصویر نقشه‌ها برای تطبیق در Base Cloner';
 
@@ -28,6 +29,15 @@ class HashMapImages extends Command
 
         if (! $this->option('force')) {
             $query->whereNull('image_hash');
+        }
+
+        if ($shard = (string) $this->option('shard')) {
+            if (! preg_match('/^(\d+)\/(\d+)$/', $shard, $m) || (int) $m[2] < 1 || (int) $m[1] >= (int) $m[2]) {
+                $this->error('فرمت --shard باید k/n باشد (k < n).');
+
+                return self::FAILURE;
+            }
+            $query->whereRaw('(id % ?) = ?', [(int) $m[2], (int) $m[1]]);
         }
 
         $limit = (int) $this->option('limit');
