@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateBaseCloneLayoutRequest;
 use App\Models\BaseClone;
 use App\Services\BaseClone\BaseCloneService;
+use App\Services\BaseClone\Games\LayoutGameAdapter;
+use App\Services\BaseClone\LayoutEditValidator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -32,7 +36,7 @@ class BaseCloneController extends Controller
 
         return response()->json([
             'ok' => true,
-            'clones' => $clones->map(fn (BaseClone $c) => $c->toPublicArray())->values(),
+            'clones' => $clones->map(fn (BaseClone $c) => $c->toPublicArray(true))->values(),
         ]);
     }
 
@@ -88,7 +92,7 @@ class BaseCloneController extends Controller
 
         return response()->json([
             'ok' => true,
-            'clone' => $result['clone']->toPublicArray(),
+            'clone' => $result['clone']->toPublicArray(true),
             'matches' => $result['matches'],
         ], 201);
     }
@@ -106,7 +110,7 @@ class BaseCloneController extends Controller
         }
 
         return Inertia::render('BaseClone/Show', [
-            'clone' => $clone->toPublicArray(),
+            'clone' => $clone->toPublicArray($isOwner),
             'isOwner' => $isOwner,
         ]);
     }
@@ -127,5 +131,151 @@ class BaseCloneController extends Controller
         $clone->delete();
 
         return response()->json(['ok' => true, 'message' => 'بیس حذف شد.']);
+    }
+
+    /**
+     * کاتالوگ ساختمان‌های یک بازی چیدمان‌محور برای ویرایشگر (ابعاد/برچسب/رنگ/آیکون/اسپرایت).
+     */
+    public function catalog(Request $request)
+    {
+        $game = (string) $request->query('game', 'coc_home');
+        $registry = $this->service->games();
+
+        if (! $registry->has($game)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'بازی ناشناخته است.',
+            ], 422);
+        }
+
+        $adapter = $registry->get($game);
+        if (! $adapter instanceof LayoutGameAdapter) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'این بازی چیدمان قابل ویرایش ندارد.',
+            ], 422);
+        }
+
+        $catalog = $adapter->catalog();
+        $types = [];
+        // all() فقط ثابت ITEMS را برمی‌گرداند؛ مسیر اسپرایت را get() از مانیفست اضافه می‌کند.
+        foreach (array_keys($catalog->all()) as $type) {
+            $meta = $catalog->get($type);
+            $types[$type] = [
+                'size' => (int) $meta['size'],
+                'label' => $meta['label'],
+                'color' => $meta['color'],
+                'icon' => $meta['icon'],
+                'category' => $meta['category'],
+                'sprite' => $meta['sprite'] ?? null,
+            ];
+        }
+
+        return response()->json([
+            'ok' => true,
+            'game' => $game,
+            'village' => $catalog->key(),
+            'grid_size' => $adapter->gridSize(),
+            'types' => $types,
+            'wall_sprites' => $catalog->wallSprites(),
+            'ground_sprite' => $catalog->groundSprite(),
+            'limits' => [
+                'buildings' => LayoutEditValidator::MAX_BUILDINGS,
+                'walls' => LayoutEditValidator::MAX_WALLS,
+            ],
+        ]);
+    }
+
+    /**
+     * نسخهٔ JSON یک بیس برای مالک (بارگذاری مجدد ویرایشگر پس از تعارض نسخه).
+     */
+    public function showJson(Request $request, BaseClone $clone)
+    {
+        if ($clone->user_id !== $request->user()->id) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'شما به این بیس دسترسی ندارید.',
+            ], 403);
+        }
+
+        $clone->load('matchedMap');
+
+        return response()->json([
+            'ok' => true,
+            'clone' => $clone->toPublicArray(true),
+        ]);
+    }
+
+    /**
+     * ذخیرهٔ ویرایش دستی چیدمان (فقط مالک) با اعتبارسنجی سخت‌گیرانه و کنترل نسخهٔ خوش‌بینانه.
+     */
+    public function updateLayout(UpdateBaseCloneLayoutRequest $request, BaseClone $clone, LayoutEditValidator $validator)
+    {
+        $registry = $this->service->games();
+        $game = $clone->game ?: 'coc_home';
+        $adapter = $registry->has($game) ? $registry->get($game) : null;
+
+        if (! $adapter instanceof LayoutGameAdapter || (($clone->layout['type'] ?? 'layout') !== 'layout')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'این رکورد چیدمان قابل ویرایش ندارد.',
+            ], 422);
+        }
+
+        $payload = $request->validated();
+        $requestedVersion = (int) $payload['version'];
+
+        $outcome = DB::transaction(function () use ($clone, $adapter, $validator, $payload, $requestedVersion) {
+            /** @var BaseClone $fresh */
+            $fresh = BaseClone::query()->whereKey($clone->getKey())->lockForUpdate()->firstOrFail();
+            $layout = is_array($fresh->layout) ? $fresh->layout : [];
+            $currentVersion = (int) ($layout['version'] ?? 1);
+
+            if ($requestedVersion !== $currentVersion) {
+                return ['status' => 'conflict', 'clone' => $fresh, 'current_version' => $currentVersion];
+            }
+
+            $result = $validator->validate($layout, $payload, $adapter->catalog(), $adapter->gridSize());
+            if (! $result['ok']) {
+                return ['status' => 'invalid', 'errors' => $result['errors']];
+            }
+
+            $data = ['layout' => $result['layout']];
+            if (array_key_exists('title', $payload) && trim((string) $payload['title']) !== '') {
+                $data['title'] = trim((string) $payload['title']);
+            }
+            $fresh->update($data);
+
+            return ['status' => 'ok', 'clone' => $fresh];
+        });
+
+        if ($outcome['status'] === 'conflict') {
+            $outcome['clone']->load('matchedMap');
+
+            return response()->json([
+                'ok' => false,
+                'reason' => 'version',
+                'message' => 'این چیدمان در جای دیگری تغییر کرده است؛ نسخهٔ جدید را بارگذاری کنید.',
+                'current_version' => $outcome['current_version'],
+                'clone' => $outcome['clone']->toPublicArray(true),
+            ], 409);
+        }
+
+        if ($outcome['status'] === 'invalid') {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'layout',
+                'message' => 'چیدمان ارسالی نامعتبر است؛ موارد مشخص‌شده را اصلاح کنید.',
+                'errors' => $outcome['errors'],
+            ], 422);
+        }
+
+        $outcome['clone']->load('matchedMap');
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'چیدمان ذخیره شد.',
+            'clone' => $outcome['clone']->toPublicArray(true),
+        ]);
     }
 }

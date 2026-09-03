@@ -12,6 +12,15 @@ class BuildingCatalog
 {
     public const WALL = 'wall';
 
+    /** مسیر مانیفست اسپرایت‌ها (نسبت به ریشهٔ پروژه). */
+    protected const SPRITE_MANIFEST = 'database/data/coc/sprites.json';
+
+    /** @var array<string, mixed>|null مانیفست بارگذاری‌شده (یک‌بار برای همهٔ نمونه‌ها) */
+    protected static ?array $spriteManifest = null;
+
+    /** @var array<string, bool> کش وجود فایل اسپرایت روی دیسک */
+    protected static array $spriteExists = [];
+
     /**
      * @var array<string, array{size:int,label:string,color:string,category:string,icon:string}>
      */
@@ -135,17 +144,139 @@ class BuildingCatalog
     }
 
     /**
-     * @return array{size:int,label:string,color:string,category:string,icon:string}
+     * @return array{size:int,label:string,color:string,category:string,icon:string,sprite:?string}
      */
     public function get(string $type): array
     {
-        return static::ITEMS[$type] ?? [
+        $meta = static::ITEMS[$type] ?? [
             'size' => 1,
             'label' => $type,
             'color' => '#6b7280',
             'category' => 'other',
             'icon' => '▪️',
         ];
+
+        $meta['sprite'] = $this->spriteFor($type);
+
+        return $meta;
+    }
+
+    /**
+     * مسیر عمومی اسپرایت ساختمان (مثل /images/coc/buildings/home/cannon.png) یا null اگر فایل موجود نباشد.
+     *
+     * برای town_hall/builder_hall اگر $level داده شود و فایل همان سطح موجود باشد، همان برمی‌گردد؛
+     * در غیر این صورت فایل پیش‌فرض نوع. دیوار (wall) به پست دیوار همان دهکده نگاشت می‌شود.
+     */
+    public function spriteFor(string $type, ?int $level = null): ?string
+    {
+        $entry = $this->spriteEntry($type);
+        if ($entry === null) {
+            return null;
+        }
+
+        if ($level !== null && isset($entry['levels'][(string) $level]['file'])) {
+            $url = $this->spriteUrl($entry['levels'][(string) $level]['file']);
+            if ($url !== null) {
+                return $url;
+            }
+        }
+
+        return isset($entry['file']) ? $this->spriteUrl((string) $entry['file']) : null;
+    }
+
+    /**
+     * اسپرایت‌های دیوار این دهکده: ['post' => url|null, 'middle' => url|null].
+     *
+     * @return array{post:?string,middle:?string}
+     */
+    public function wallSprites(): array
+    {
+        $walls = static::spriteManifest()['walls'] ?? [];
+        $key = $this->key();
+
+        $post = isset($walls[$key]['file']) ? $this->spriteUrl((string) $walls[$key]['file']) : null;
+        if ($post === null && isset($walls[$key.'_legacy']['file'])) {
+            $post = $this->spriteUrl((string) $walls[$key.'_legacy']['file']);
+        }
+        $middle = isset($walls[$key.'_middle']['file']) ? $this->spriteUrl((string) $walls[$key.'_middle']['file']) : null;
+
+        return ['post' => $post, 'middle' => $middle];
+    }
+
+    /** اسپرایت کاشی زمین (لوزی چمن) یا null. */
+    public function groundSprite(): ?string
+    {
+        $ground = static::spriteManifest()['ground']['grass']['file'] ?? null;
+
+        return $ground ? $this->spriteUrl((string) $ground) : null;
+    }
+
+    /** متن سلب مسئولیت Supercell از مانیفست (fa/en). */
+    public function spriteAttribution(): array
+    {
+        return static::spriteManifest()['attribution'] ?? [];
+    }
+
+    /**
+     * @return array<string, mixed>|null ورودی مانیفست برای این نوع در دهکدهٔ جاری
+     */
+    protected function spriteEntry(string $type): ?array
+    {
+        $manifest = static::spriteManifest();
+        $village = $this->key();
+
+        if ($type === self::WALL) {
+            $walls = $manifest['walls'] ?? [];
+            $entry = $walls[$village] ?? null;
+            if (is_array($entry) && $this->spriteUrl((string) ($entry['file'] ?? '')) === null && isset($walls[$village.'_legacy'])) {
+                $entry = $walls[$village.'_legacy'];
+            }
+
+            return is_array($entry) ? $entry : null;
+        }
+
+        $entry = $manifest[$village][$type] ?? null;
+
+        return is_array($entry) ? $entry : null;
+    }
+
+    /** مسیر عمومی فایل اگر روی دیسک موجود باشد؛ در غیر این صورت null. */
+    protected function spriteUrl(string $file): ?string
+    {
+        if ($file === '') {
+            return null;
+        }
+
+        $publicPath = rtrim((string) (static::spriteManifest()['public_path'] ?? '/images/coc/buildings'), '/');
+        $relative = 'public'.$publicPath.'/'.ltrim($file, '/');
+
+        if (! array_key_exists($relative, static::$spriteExists)) {
+            static::$spriteExists[$relative] = is_file(static::projectPath($relative));
+        }
+
+        return static::$spriteExists[$relative] ? $publicPath.'/'.ltrim($file, '/') : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected static function spriteManifest(): array
+    {
+        if (static::$spriteManifest === null) {
+            $path = static::projectPath(self::SPRITE_MANIFEST);
+            $data = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+            static::$spriteManifest = is_array($data) ? $data : [];
+        }
+
+        return static::$spriteManifest;
+    }
+
+    /** مسیر مطلق نسبت به ریشهٔ پروژه (بدون وابستگی به کانتینر لاراول). */
+    protected static function projectPath(string $relative): string
+    {
+        $root = function_exists('app') && app()->bound('path.base') ? base_path() : dirname(__DIR__, 3);
+
+        return $root.DIRECTORY_SEPARATOR.ltrim($relative, '/');
     }
 
     /**

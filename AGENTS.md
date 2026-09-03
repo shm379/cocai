@@ -44,7 +44,8 @@
 3. **`MapCrawlerService` is a stub**: Do not rely on `MapController::crawlMaps` for production data; use `php artisan fetch:clasher`.
 4. **`PlayerTagForm.vue` is empty**: The player-tag form is currently inline inside `Dashboard.vue`.
 5. **No node_modules by default**: Run `npm install` before `npm run dev` / `npm run build`.
-6. **In-game layout links cannot be synthesized**: `link.clashofclans.com/...action=OpenLayout&id=TH16:HV:<32 chars>` is a 24-byte opaque reference to a layout stored on Supercell's servers. The Base Cloner therefore only returns a `copy_link` when the uploaded image matches an archived map (`maps.image_hash`, populated by `maps:hash`).
+6. **Map archive**: the real 13k-map archive (with in-game links) comes from the iCloud dump `cocai.sql` (2025-01-22); prod and local `cocai` were restored from it on 2026-09-03. Run `maps:hash` (full images) and `maps:signature` after importing.
+7. **In-game layout links cannot be synthesized**: `link.clashofclans.com/...action=OpenLayout&id=TH16:HV:<32 chars>` is a 24-byte opaque reference to a layout stored on Supercell's servers. The Base Cloner therefore only returns a `copy_link` when the uploaded image matches an archived map (`maps.image_hash`, populated by `maps:hash`).
 
 ## Development Commands
 
@@ -58,8 +59,8 @@ npm install
 # Local dev (runs Laravel, queue, logs, Vite)
 composer run dev
 
-# Run tests
-./vendor/bin/pest
+# Run tests (in-memory SQLite so the dev MySQL DB is NOT wiped)
+DB_CONNECTION=sqlite DB_DATABASE=:memory: CACHE_STORE=array ./vendor/bin/pest
 
 # Refresh game profiles (cron-friendly)
 php artisan update:game_profiles
@@ -69,6 +70,9 @@ php artisan fetch:clasher
 
 # Compute perceptual hashes for archived map images (needed for Base Cloner in-game link matching)
 php artisan maps:hash
+
+# Refresh building sprites (local units + Fandom wiki API)
+php artisan coc:sprites
 
 # Refresh Clash Royale card ids (official API if CLASH_ROYALE_API_TOKEN is set, else RoyaleAPI data)
 php artisan cr:cards

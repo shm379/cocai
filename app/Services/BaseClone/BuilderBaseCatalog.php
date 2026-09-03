@@ -6,6 +6,9 @@ namespace App\Services\BaseClone;
  * کاتالوگ ساختمان‌های بیلدر بیس (Builder Base 2.0).
  *
  * ابعاد تقریبی بر اساس بازی: بیلدر هال ۴×۴، تسلا و کلبهٔ درمان ۲×۲، بقیه ۳×۳.
+ *
+ * اسپرایت‌ها (کلید «sprite» در get() و spriteFor()) از بخش «builder» مانیفست
+ * database/data/coc/sprites.json خوانده می‌شوند؛ دیوار به walls/builder.png نگاشت می‌شود.
  */
 class BuilderBaseCatalog extends BuildingCatalog
 {

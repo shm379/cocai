@@ -5,9 +5,22 @@ namespace App\Services\BaseClone;
 /**
  * نگاشت قطعی خروجی Vision (درصد تصویر) به شبکهٔ ۴۴×۴۴ دهکده.
  *
- * ورودی: گوشه‌های لوزی نقشه، ساختمان‌ها (مرکز) و قطعات دیوار (پاره‌خط) به درصد.
- * خروجی: چیدمان با مختصات صحیح خانه‌ها، بدون هم‌پوشانی (با جابه‌جایی کوچک در صورت برخورد).
- * هیچ عددی حدس زده نمی‌شود؛ تنها تبدیل هندسی و برف‌گیری (snap) روی شبکه انجام می‌شود.
+ * ورودی: ساختمان‌ها (مرکز و در صورت وجود جعبهٔ اسپرایت)، قطعات دیوار، گوشه‌های لوزی و جعبهٔ
+ * لوزی قابل‌مشاهده — همه به درصد تصویر — و ابعاد تصویر اصلی.
+ * هندسه توسط GeometrySolver حل می‌شود (مقیاس از جعبه‌ها، محورها از دیوارها، مبدأ از
+ * گوشه‌ها/لوزی/مرکز نقاط و قفل فاز روی شبکه). این کلاس فقط جای‌گذاری روی شبکه، رفع
+ * هم‌پوشانی، سقف تعداد به ازای تاون‌هال (BuildingCaps)، اطمینان و پرچم‌ها را انجام می‌دهد.
+ *
+ * فرمول اطمینان هر ساختمان (قطعی، ۰ تا ۱):
+ *   confidence = 0.55
+ *              + 0.15 · (1 − min(1, shift / 2))            جابه‌جایی چبیشف از خانهٔ ایده‌آل
+ *              + 0.15 · (1 − min(1, edge_of_tile / 0.5))   فاصلهٔ مختصات پیوسته تا مرکز خانه
+ *              + 0.15 · box_plausibility                    ۱ = اندازهٔ جعبه با footprint می‌خواند، ۰٫۵ = جعبه ندارد، ۰ = ناسازگار
+ *   cap_trimmed → حداکثر ۰٫۳؛ جانشده → حداکثر ۰٫۲.
+ * سقف‌ها با «اطمینان پیش از جای‌گذاری» (shift = 0) اعمال می‌شوند تا ساختمان‌های اضافی جای
+ * ساختمان‌های واقعی را نگیرند.
+ *
+ * uncertain = !placed || shift >= 2 || edge_of_tile || box_size_mismatch || cap_trimmed || altar_with_hero_hall
  */
 class LayoutGridMapper
 {
@@ -15,80 +28,231 @@ class LayoutGridMapper
 
     public const MAX_WALLS = 400;
 
+    public const VERSION = 2;
+
+    /** پرچم‌های ممکن برای هر ساختمان. */
+    public const FLAGS = ['moved', 'edge_of_tile', 'box_size_mismatch', 'cap_trimmed', 'unplaced', 'altar_with_hero_hall'];
+
     protected const SEARCH_RADIUS = 3;
 
-    protected const CORNER_RANGE = [-250.0, 350.0];
+    protected const HERO_ALTARS = ['barbarian_king', 'archer_queen', 'grand_warden', 'royal_champion', 'minion_prince'];
 
-    public function __construct(protected BuildingCatalog $catalog)
-    {
-    }
+    public function __construct(protected BuildingCatalog $catalog) {}
 
     /**
      * @param  array  $vision  خروجی نرمال‌شدهٔ مدل Vision
-     * @return array{grid_size:int,th_level:?int,perspective:string,corners_source:string,buildings:array,walls:array,stats:array}
+     * @return array{grid_size:int,th_level:?int,perspective:string,corners_source:string,version:int,source:string,geometry:?array,warnings:array,buildings:array,walls:array,stats:array}
      */
     public function map(array $vision, int $gridSize = self::GRID_SIZE): array
     {
         $perspective = ($vision['perspective'] ?? 'isometric') === 'top_down' ? 'top_down' : 'isometric';
         $imageSize = $this->sanitizeImageSize($vision['image_size'] ?? null);
+        [$imgW, $imgH] = $imageSize ?? [1000.0, 1000.0];
 
         $rawBuildings = $this->sanitizeBuildings($vision['buildings'] ?? []);
         $rawWalls = $this->sanitizeWalls($vision['walls'] ?? []);
+        $thLevel = $this->sanitizeTownHallLevel($vision['town_hall_level'] ?? null, $rawBuildings);
+        $village = $this->catalog->key();
+        $warnings = [];
 
-        $cornersSource = 'model';
-        $corners = $perspective === 'isometric' ? $this->sanitizeCorners($vision['grid_corners'] ?? null) : null;
+        // ۱) هندسه
+        $solver = new GeometrySolver;
+        $affine = null;
+        $solved = [];
+        $geometry = null;
+        $cornersSource = 'linear';
 
-        if ($corners === null && $perspective === 'isometric') {
-            $thBox = $this->sanitizeBox($vision['town_hall_box'] ?? null);
-            $corners = $this->estimateCorners($rawBuildings, $rawWalls, $thBox, $imageSize, $gridSize);
-            $cornersSource = $thBox ? 'town_hall_scale' : 'bounding_box';
+        if ($perspective === 'isometric' && $rawBuildings !== []) {
+            $thType = $this->catalog->has('town_hall') ? 'town_hall' : 'builder_hall';
+            $geo = $solver->solve([
+                'image_size' => $imageSize,
+                'units' => 'pct',
+                'grid_size' => $gridSize,
+                'buildings' => array_map(fn ($b) => [
+                    'x' => $b['x'], 'y' => $b['y'], 'size' => $this->catalog->size($b['type']), 'box' => $b['box'],
+                ], $rawBuildings),
+                'walls' => $rawWalls,
+                'corners' => $vision['grid_corners'] ?? null,
+                'diamond_box' => $vision['diamond_box'] ?? null,
+                'town_hall_box' => $vision['town_hall_box'] ?? null,
+                'th_size' => $this->catalog->size($thType),
+            ]);
+
+            if ($geo['ok']) {
+                $affine = $geo['affine'];
+                $solved = $geo['buildings'];
+                $cornersSource = $geo['source'];
+                $warnings = array_merge($warnings, $geo['warnings']);
+                $geometry = [
+                    'tile_px' => $geo['tile_px'],
+                    'scale_source' => $geo['scale_source'],
+                    'scale_candidates' => $geo['scale_candidates'],
+                    'aspect' => $geo['aspect'],
+                    'axis_slope' => [$geo['axis']['k1'], $geo['axis']['k2']],
+                    'axis_source' => $geo['axis']['source'],
+                    'axis_fixed' => $geo['axis']['fixed'],
+                    'lattice_score' => $geo['lattice']['score'],
+                    'lattice_scale_factor' => $geo['lattice']['scale_factor'],
+                    'edge_flags' => $geo['edge_flags'],
+                    'corners' => $geo['corners'],
+                ];
+            }
         }
 
-        if ($corners === null) {
-            $cornersSource = 'linear';
-        }
-
-        $toGrid = fn (float $x, float $y): array => $corners
-            ? $this->isoToGrid($x, $y, $corners, $gridSize)
+        $toGrid = fn (float $x, float $y): array => $affine
+            ? $solver->toGrid($affine, $x / 100 * $imgW, $y / 100 * $imgH)
             : [$x / 100 * $gridSize, $y / 100 * $gridSize];
 
-        // ساختمان‌های بزرگ‌تر اول جای‌گذاری می‌شوند تا کمتر جابه‌جا شوند.
-        $ordered = $rawBuildings;
-        usort($ordered, function (array $a, array $b) {
-            $sa = $this->catalog->size($a['type']);
-            $sb = $this->catalog->size($b['type']);
+        // ۲) مختصات پیوسته + اطمینان پیش از جای‌گذاری
+        $entries = [];
+        foreach ($rawBuildings as $raw) {
+            $i = $raw['_index'];
+            $size = $this->catalog->size($raw['type']);
+            if (isset($solved[$i])) {
+                $gu = $solved[$i]['u'];
+                $gv = $solved[$i]['v'];
+                $edge = $solved[$i]['edge_of_tile'];
+                $edgeFlag = $solved[$i]['edge_flag'];
+                $mismatch = $solved[$i]['box_size_mismatch'];
+            } else {
+                [$gu, $gv] = $toGrid($raw['x'], $raw['y']);
+                $edge = max($this->distToInteger($gu - $size / 2), $this->distToInteger($gv - $size / 2));
+                $edgeFlag = $edge >= GeometrySolver::EDGE_THRESHOLD;
+                $mismatch = false;
+            }
+            $entries[$i] = [
+                'raw' => $raw,
+                'size' => $size,
+                'u' => $gu,
+                'v' => $gv,
+                'edge' => $edge,
+                'edge_flag' => $edgeFlag,
+                'mismatch' => $mismatch,
+                'pre_conf' => $this->confidence(0, $edge, $raw['box'] !== null, $mismatch),
+                'trimmed' => false,
+            ];
+        }
 
-            return $sb <=> $sa ?: $a['_index'] <=> $b['_index'];
+        // ۳) سقف تعداد به ازای تاون‌هال (فقط دهکدهٔ اصلی، TH9+)
+        // دروازهٔ اطمینان: اگر سطح ردیف تاون‌هال با «th» مدل نخواند، بیشینهٔ دو عدد مبنا می‌شود؛ و اگر
+        // انواعی که در این TH سقف صفر دارند ≥ ۳ ساختمان واقعی را حذف کنند، TH پایین‌تر از واقعی خوانده شده
+        // و سقف‌ها اعمال نمی‌شوند (th_unreliable تا رابط از مالک تأیید بگیرد).
+        $capsTh = $thLevel;
+        $thUnreliable = false;
+        foreach ($rawBuildings as $raw) {
+            if ($raw['type'] === 'town_hall' && $raw['level'] !== null && $thLevel !== null && $raw['level'] !== $thLevel) {
+                $capsTh = max($thLevel, $raw['level']);
+                $thUnreliable = true;
+                break;
+            }
+        }
+        $capsApplied = BuildingCaps::applies($capsTh, $village);
+        if ($capsApplied) {
+            $zeroCapHits = 0;
+            foreach ($entries as $e) {
+                if (BuildingCaps::max($e['raw']['type'], $capsTh) === 0) {
+                    $zeroCapHits++;
+                }
+            }
+            if ($zeroCapHits >= 3) {
+                $capsApplied = false;
+                $thUnreliable = true;
+            }
+        }
+        if ($thUnreliable) {
+            $warnings[] = 'th_unreliable';
+        }
+        if ($capsApplied) {
+            $thLevel = $capsTh;
+            $this->applyCaps($entries, $thLevel);
+            $expected = BuildingCaps::total($thLevel);
+            if ($expected !== null) {
+                if (count($entries) > $expected + 5) {
+                    $warnings[] = 'over_detection';
+                } elseif (count($entries) < $expected - 15) {
+                    $warnings[] = 'under_detection';
+                }
+            }
+        }
+
+        $hasHeroHall = false;
+        foreach ($entries as $e) {
+            if (! $e['trimmed'] && $e['raw']['type'] === 'hero_hall') {
+                $hasHeroHall = true;
+                break;
+            }
+        }
+
+        // ۴) جای‌گذاری: بزرگ‌ترها اول تا کمتر جابه‌جا شوند
+        $order = array_keys($entries);
+        usort($order, function (int $a, int $b) use ($entries) {
+            return $entries[$b]['size'] <=> $entries[$a]['size'] ?: $a <=> $b;
         });
 
         $occupancy = array_fill(0, $gridSize, array_fill(0, $gridSize, false));
         $buildings = [];
-        $unplaced = 0;
 
-        foreach ($ordered as $raw) {
+        foreach ($order as $i) {
+            $e = $entries[$i];
+            $raw = $e['raw'];
             $type = $raw['type'];
             $meta = $this->catalog->get($type);
-            $size = $meta['size'];
+            $size = $e['size'];
 
-            [$gx, $gy] = $toGrid($raw['x'], $raw['y']);
+            $ix = (int) round($e['u'] - $size / 2);
+            $iy = (int) round($e['v'] - $size / 2);
+            $ix = max(0, min($gridSize - $size, $ix));
+            $iy = max(0, min($gridSize - $size, $iy));
 
-            $x0 = (int) round($gx - $size / 2);
-            $y0 = (int) round($gy - $size / 2);
-            $x0 = max(0, min($gridSize - $size, $x0));
-            $y0 = max(0, min($gridSize - $size, $y0));
-
-            $spot = $this->findFreeSpot($occupancy, $x0, $y0, $size, $gridSize);
-            $placed = $spot !== null;
-
-            if ($placed) {
-                [$x0, $y0] = $spot;
-                $this->occupy($occupancy, $x0, $y0, $size);
-            } else {
-                $unplaced++;
+            $placed = false;
+            $shift = 0;
+            $x0 = $ix;
+            $y0 = $iy;
+            if (! $e['trimmed']) {
+                $spot = $this->findFreeSpot($occupancy, $ix, $iy, $size, $gridSize);
+                if ($spot !== null) {
+                    [$x0, $y0] = $spot;
+                    $this->occupy($occupancy, $x0, $y0, $size);
+                    $placed = true;
+                    $shift = max(abs($x0 - $ix), abs($y0 - $iy));
+                }
             }
 
+            $flags = [];
+            if ($e['trimmed']) {
+                $flags[] = 'cap_trimmed';
+            } elseif (! $placed) {
+                $flags[] = 'unplaced';
+            }
+            if ($shift >= 1) {
+                $flags[] = 'moved';
+            }
+            if ($e['edge_flag']) {
+                $flags[] = 'edge_of_tile';
+            }
+            if ($e['mismatch']) {
+                $flags[] = 'box_size_mismatch';
+            }
+            if ($hasHeroHall && in_array($type, self::HERO_ALTARS, true)) {
+                $flags[] = 'altar_with_hero_hall';
+            }
+
+            $confidence = $this->confidence($shift, $e['edge'], $raw['box'] !== null, $e['mismatch']);
+            if ($e['trimmed']) {
+                $confidence = min($confidence, 0.3);
+            } elseif (! $placed) {
+                $confidence = min($confidence, 0.2);
+            }
+
+            $uncertain = ! $placed
+                || $shift >= 2
+                || in_array('edge_of_tile', $flags, true)
+                || $e['mismatch']
+                || $e['trimmed']
+                || in_array('altar_with_hero_hall', $flags, true);
+
             $entry = [
-                'id' => $raw['_index'] + 1,
+                'id' => $i + 1,
                 'type' => $type,
                 'label' => $meta['label'],
                 'category' => $meta['category'],
@@ -98,10 +262,23 @@ class LayoutGridMapper
                 'x' => $x0,
                 'y' => $y0,
                 'placed' => $placed,
+                'confidence' => round($confidence, 2),
+                'uncertain' => $uncertain,
+                'flags' => $flags,
+                'alternatives' => [],
+                'shift' => $shift,
+                'edge_of_tile' => round($e['edge'], 3),
+                'grid_raw' => ['u' => round($e['u'], 2), 'v' => round($e['v'], 2)],
             ];
-
+            if (array_key_exists('sprite', $meta)) {
+                $entry['sprite'] = $meta['sprite'];
+            }
             if ($raw['level'] !== null) {
                 $entry['level'] = $raw['level'];
+            }
+            if ($raw['box'] !== null) {
+                [$bx0, $by0, $bx1, $by1] = $raw['box'];
+                $entry['raw'] = ['x' => round($bx0, 2), 'y' => round($by0, 2), 'w' => round($bx1 - $bx0, 2), 'h' => round($by1 - $by0, 2)];
             }
 
             $buildings[] = $entry;
@@ -109,10 +286,55 @@ class LayoutGridMapper
 
         usort($buildings, fn ($a, $b) => $a['id'] <=> $b['id']);
 
-        $walls = [];
+        // ۵) دیوارها. در بازی دیوار فقط در امتداد محورهای شبکه است؛ اگر اکثر پاره‌خط‌های مدل هم‌محور
+        // باشند، بقیه (افقی/عمودی در تصویر یا طول صفر) نویز مدل‌اند و حذف می‌شوند و پاره‌خط‌های هم‌محور
+        // دقیقاً روی محور می‌نشینند. در غیر این صورت (اسکیمای قدیمی/مدل متفاوت) رفتار قبلی حفظ می‌شود.
+        $wallCap = self::MAX_WALLS;
+        if ($capsApplied && BuildingCaps::wallCap($thLevel) !== null) {
+            $wallCap = min($wallCap, BuildingCaps::wallCap($thLevel));
+        }
+
+        $segments = [];
+        $onAxis = 0;
+        $offAxis = 0;
         foreach ($rawWalls as $segment) {
             [$ax, $ay] = $toGrid($segment['x1'], $segment['y1']);
             [$bx, $by] = $toGrid($segment['x2'], $segment['y2']);
+            $class = 'keep';
+            if ($affine !== null) {
+                $du = abs($bx - $ax);
+                $dv = abs($by - $ay);
+                $len = max($du, $dv);
+                if ($len < 0.5) {
+                    $class = 'degenerate';
+                } elseif (min($du, $dv) > 1.5 && min($du, $dv) / $len > 0.25) {
+                    $class = 'off_axis';
+                    $offAxis++;
+                } else {
+                    $class = $du >= $dv ? 'u' : 'v';
+                    $onAxis++;
+                }
+            }
+            $segments[] = [$ax, $ay, $bx, $by, $class];
+        }
+        $filterWalls = $affine !== null && $onAxis >= 3 && $onAxis >= $offAxis;
+
+        $walls = [];
+        $droppedWalls = 0;
+        foreach ($segments as [$ax, $ay, $bx, $by, $class]) {
+            if ($filterWalls) {
+                if ($class === 'degenerate' || $class === 'off_axis') {
+                    $droppedWalls++;
+
+                    continue;
+                }
+                // هم‌راستا کردن با محور: مختصات فرعی برای هر دو سر یکسان می‌شود.
+                if ($class === 'u') {
+                    $ay = $by = ($ay + $by) / 2;
+                } else {
+                    $ax = $bx = ($ax + $bx) / 2;
+                }
+            }
 
             foreach ($this->lineCells((int) floor($ax), (int) floor($ay), (int) floor($bx), (int) floor($by)) as [$cx, $cy]) {
                 if ($cx < 0 || $cy < 0 || $cx >= $gridSize || $cy >= $gridSize) {
@@ -126,22 +348,32 @@ class LayoutGridMapper
                     continue;
                 }
                 $walls[$key] = [$cx, $cy];
-                if (count($walls) >= self::MAX_WALLS) {
+                if (count($walls) >= $wallCap) {
                     break 2;
                 }
             }
         }
+        if ($droppedWalls > 0) {
+            $warnings[] = 'walls_dropped';
+        }
 
-        $thLevel = $this->sanitizeTownHallLevel($vision['town_hall_level'] ?? null, $rawBuildings);
+        $extra = [
+            'expected_total' => $capsApplied ? BuildingCaps::total($thLevel) : null,
+            'walls_dropped' => $droppedWalls,
+        ];
 
         return [
             'grid_size' => $gridSize,
             'th_level' => $thLevel,
             'perspective' => $perspective,
             'corners_source' => $cornersSource,
+            'version' => self::VERSION,
+            'source' => 'ai',
+            'geometry' => $geometry,
+            'warnings' => array_values(array_unique($warnings)),
             'buildings' => $buildings,
             'walls' => array_values($walls),
-            'stats' => $this->buildStats($buildings, count($walls), $unplaced),
+            'stats' => LayoutStats::build($buildings, count($walls), $extra),
         ];
     }
 
@@ -174,62 +406,72 @@ class LayoutGridMapper
     }
 
     /**
-     * تخمین گوشه‌های لوزی وقتی مدل آن‌ها را نداده است.
-     *
-     * اولویت با مقیاس تاون‌هال است (عرض اسپرایت TH = ۴ خانه)؛ در غیر این صورت
-     * جعبهٔ محیطی همهٔ نقاط به‌عنوان کل نقشه در نظر گرفته می‌شود.
+     * اطمینان قطعی (فرمول در docblock کلاس).
      */
-    protected function estimateCorners(array $buildings, array $walls, ?array $thBox, ?array $imageSize, int $gridSize): ?array
+    public function confidence(int $shift, float $edge, bool $hasBox, bool $mismatch): float
     {
-        $points = [];
-        foreach ($buildings as $b) {
-            $points[] = [$b['x'], $b['y']];
-        }
-        foreach ($walls as $w) {
-            $points[] = [$w['x1'], $w['y1']];
-            $points[] = [$w['x2'], $w['y2']];
-        }
+        $boxPlausibility = ! $hasBox ? 0.5 : ($mismatch ? 0.0 : 1.0);
 
-        if ($points === []) {
-            return null;
-        }
+        $c = 0.55
+            + 0.15 * (1 - min(1.0, $shift / 2))
+            + 0.15 * (1 - min(1.0, $edge / 0.5))
+            + 0.15 * $boxPlausibility;
 
-        [$imgW, $imgH] = $imageSize ?? [100.0, 100.0];
-        $sx = $imgW / 100;
-        $sy = $imgH / 100;
+        return max(0.0, min(1.0, $c));
+    }
 
-        $minX = $minY = PHP_FLOAT_MAX;
-        $maxX = $maxY = -PHP_FLOAT_MAX;
-        foreach ($points as [$px, $py]) {
-            $minX = min($minX, $px * $sx);
-            $maxX = max($maxX, $px * $sx);
-            $minY = min($minY, $py * $sy);
-            $maxY = max($maxY, $py * $sy);
+    /**
+     * اعمال سقف‌های BuildingCaps: در هر نوع، مطمئن‌ترین‌ها می‌مانند و بقیه trimmed می‌شوند
+     * (داده حذف نمی‌شود؛ placed=false و پرچم cap_trimmed). سپس سقف گروهی ادغام‌ها: کم‌اطمینان‌ترین
+     * عضو گروه (در تساوی، وزن بیشتر و اندیس بالاتر) حذف می‌شود تا مجموع وزنی به سقف برسد.
+     *
+     * @param  array<int, array>  $entries  با کلید _index؛ فیلد trimmed به‌روزرسانی می‌شود
+     */
+    protected function applyCaps(array &$entries, int $th): void
+    {
+        $byType = [];
+        foreach ($entries as $i => $e) {
+            $byType[$e['raw']['type']][] = $i;
         }
 
-        $cx = ($minX + $maxX) / 2;
-        $cy = ($minY + $maxY) / 2;
+        $rank = fn (int $a, int $b) => $entries[$b]['pre_conf'] <=> $entries[$a]['pre_conf'] ?: $a <=> $b;
 
-        if ($thBox !== null && $thBox['w'] > 0) {
-            $thSize = $this->catalog->has('town_hall') ? $this->catalog->size('town_hall') : $this->catalog->size('builder_hall');
-            $tileWidth = ($thBox['w'] * $sx) / $thSize;
-            $halfWidth = $tileWidth * $gridSize / 2;
-        } else {
-            $w = max(1.0, $maxX - $minX);
-            $h = max(1.0, $maxY - $minY);
-            $halfWidth = ($w / 2 + $h) * 1.15;
+        foreach ($byType as $type => $indices) {
+            $cap = BuildingCaps::max($type, $th);
+            if ($cap === null || count($indices) <= $cap) {
+                continue;
+            }
+            usort($indices, $rank);
+            foreach (array_slice($indices, $cap) as $i) {
+                $entries[$i]['trimmed'] = true;
+            }
         }
 
-        $halfHeight = $halfWidth / 2;
+        foreach (BuildingCaps::groups($th) as $group) {
+            $guard = 0;
+            while ($guard++ < 100) {
+                $sum = 0;
+                $members = [];
+                foreach ($entries as $i => $e) {
+                    $w = $group['weights'][$e['raw']['type']] ?? null;
+                    if ($w === null || $e['trimmed']) {
+                        continue;
+                    }
+                    $sum += $w;
+                    $members[] = $i;
+                }
+                if ($sum <= $group['cap'] || $members === []) {
+                    break;
+                }
+                usort($members, function (int $a, int $b) use ($entries, $group) {
+                    $wa = $group['weights'][$entries[$a]['raw']['type']];
+                    $wb = $group['weights'][$entries[$b]['raw']['type']];
 
-        $pct = fn (float $px, float $py): array => ['x' => $px / $sx, 'y' => $py / $sy];
-
-        return [
-            'top' => $pct($cx, $cy - $halfHeight),
-            'right' => $pct($cx + $halfWidth, $cy),
-            'bottom' => $pct($cx, $cy + $halfHeight),
-            'left' => $pct($cx - $halfWidth, $cy),
-        ];
+                    return $entries[$a]['pre_conf'] <=> $entries[$b]['pre_conf'] ?: $wb <=> $wa ?: $b <=> $a;
+                });
+                $entries[$members[0]]['trimmed'] = true;
+            }
+        }
     }
 
     /**
@@ -321,6 +563,13 @@ class LayoutGridMapper
         return $cells;
     }
 
+    protected function distToInteger(float $t): float
+    {
+        $f = $t - floor($t);
+
+        return min($f, 1 - $f);
+    }
+
     protected function sanitizeBuildings(array $items): array
     {
         $out = [];
@@ -343,12 +592,22 @@ class LayoutGridMapper
                 $level = null;
             }
 
+            $box = null;
+            if (isset($item['box']) && is_array($item['box']) && count($item['box']) >= 4) {
+                $b = array_values($item['box']);
+                if (is_numeric($b[0]) && is_numeric($b[1]) && is_numeric($b[2]) && is_numeric($b[3])
+                    && (float) $b[2] > (float) $b[0] && (float) $b[3] > (float) $b[1]) {
+                    $box = [(float) $b[0], (float) $b[1], (float) $b[2], (float) $b[3]];
+                }
+            }
+
             $out[] = [
                 '_index' => $index++,
                 'type' => $type,
                 'x' => (float) $item['x'],
                 'y' => (float) $item['y'],
                 'level' => $level,
+                'box' => $box,
             ];
         }
 
@@ -379,58 +638,6 @@ class LayoutGridMapper
         return $out;
     }
 
-    protected function sanitizeCorners($corners): ?array
-    {
-        if (! is_array($corners)) {
-            return null;
-        }
-
-        $out = [];
-        foreach (['top', 'right', 'bottom', 'left'] as $name) {
-            $c = $corners[$name] ?? null;
-            if (! is_array($c) || ! isset($c['x'], $c['y']) || ! is_numeric($c['x']) || ! is_numeric($c['y'])) {
-                return null;
-            }
-            $x = (float) $c['x'];
-            $y = (float) $c['y'];
-            [$lo, $hi] = self::CORNER_RANGE;
-            if ($x < $lo || $x > $hi || $y < $lo || $y > $hi) {
-                return null;
-            }
-            $out[$name] = ['x' => $x, 'y' => $y];
-        }
-
-        // لوزی باید مساحت معنادار داشته باشد.
-        $ax = $out['right']['x'] - $out['top']['x'];
-        $ay = $out['right']['y'] - $out['top']['y'];
-        $bx = $out['left']['x'] - $out['top']['x'];
-        $by = $out['left']['y'] - $out['top']['y'];
-        if (abs($ax * $by - $ay * $bx) < 1.0) {
-            return null;
-        }
-
-        return $out;
-    }
-
-    protected function sanitizeBox($box): ?array
-    {
-        if (! is_array($box)) {
-            return null;
-        }
-        foreach (['x', 'y', 'w', 'h'] as $k) {
-            if (! isset($box[$k]) || ! is_numeric($box[$k])) {
-                return null;
-            }
-        }
-        $w = (float) $box['w'];
-        $h = (float) $box['h'];
-        if ($w <= 0.5 || $h <= 0.5 || $w > 100 || $h > 100) {
-            return null;
-        }
-
-        return ['x' => (float) $box['x'], 'y' => (float) $box['y'], 'w' => $w, 'h' => $h];
-    }
-
     protected function sanitizeImageSize($size): ?array
     {
         if (! is_array($size) || count($size) < 2 || ! is_numeric($size[0]) || ! is_numeric($size[1])) {
@@ -458,27 +665,5 @@ class LayoutGridMapper
         }
 
         return null;
-    }
-
-    protected function buildStats(array $buildings, int $wallCount, int $unplaced): array
-    {
-        $byCategory = [];
-        $byType = [];
-        foreach ($buildings as $b) {
-            if (! $b['placed']) {
-                continue;
-            }
-            $byCategory[$b['category']] = ($byCategory[$b['category']] ?? 0) + 1;
-            $byType[$b['type']] = ($byType[$b['type']] ?? 0) + 1;
-        }
-
-        return [
-            'building_count' => count($buildings),
-            'placed_count' => count($buildings) - $unplaced,
-            'unplaced_count' => $unplaced,
-            'wall_count' => $wallCount,
-            'by_category' => $byCategory,
-            'by_type' => $byType,
-        ];
     }
 }

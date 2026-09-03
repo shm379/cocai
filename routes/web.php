@@ -191,8 +191,12 @@ Route::get('/map', [MapController::class, 'crawlMaps'])->middleware('auth')->nam
 Route::middleware('auth')->group(function () {
     Route::get('/api/base-clones', [BaseCloneController::class, 'index'])->name('base-clone.index');
     Route::get('/api/base-clones/games', [BaseCloneController::class, 'games'])->name('base-clone.games');
+    Route::get('/api/base-clones/catalog', [BaseCloneController::class, 'catalog'])->name('base-clone.catalog');
     Route::post('/api/base-clones', [BaseCloneController::class, 'store'])
         ->middleware('throttle:10,1')->name('base-clone.store');
+    Route::get('/api/base-clones/{clone}', [BaseCloneController::class, 'showJson'])->name('base-clone.json');
+    Route::put('/api/base-clones/{clone}/layout', [BaseCloneController::class, 'updateLayout'])
+        ->middleware('throttle:30,1')->name('base-clone.layout.update');
     Route::delete('/api/base-clones/{clone}', [BaseCloneController::class, 'destroy'])->name('base-clone.destroy');
 });
 // صفحهٔ عمومی بیس بازسازی‌شده (قابل اشتراک بدون ورود)

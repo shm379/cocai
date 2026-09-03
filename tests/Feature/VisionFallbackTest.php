@@ -125,3 +125,60 @@ it('salvages a truncated compact response including walls', function () {
         ->and(array_column($result['data']['buildings'], 'type'))->toBe(['town_hall', 'mortar'])
         ->and($result['data']['buildings'][1]['level'])->toBe(12);
 });
+
+it('parses the bbox schema with 0-1000 integer coordinates', function () {
+    $compact = '{"th":15,"p":"iso","d":[10,10,990,990],"c":null,"b":[["town_hall",463,404,538,480,15],["cannon",300,300,350,350],["x_bow_air",700,300,750,350]],"w":[[490,390,460,360]]}';
+    Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => $compact], 'finish_reason' => 'stop']]], 200)]);
+
+    $result = app(LayoutVisionExtractor::class)->extractLayout(UploadedFile::fake()->image('b.jpg', 400, 300));
+    $data = $result['data'];
+
+    expect($result['ok'])->toBeTrue()
+        ->and($data['schema_version'])->toBe(2)
+        ->and($data['town_hall_level'])->toBe(15)
+        ->and($data['grid_corners'])->toBeNull()
+        ->and($data['diamond_box'])->toBe([1.0, 1.0, 99.0, 99.0])
+        ->and($data['image_size'])->toBe([400, 300])
+        ->and($data['axes_swapped'])->toBeFalse()
+        ->and(array_column($data['buildings'], 'type'))->toBe(['town_hall', 'cannon', 'x_bow'])
+        ->and($data['buildings'][0]['box'])->toBe([46.3, 40.4, 53.8, 48.0])
+        ->and($data['buildings'][0]['x'])->toBe(50.05)
+        ->and($data['buildings'][0]['y'])->toBe(44.2)
+        ->and($data['buildings'][0]['level'])->toBe(15)
+        ->and($data['buildings'][1])->not->toHaveKey('level')
+        ->and($data['walls'][0])->toBe(['x1' => 49.0, 'y1' => 39.0, 'x2' => 46.0, 'y2' => 36.0]);
+});
+
+it('salvages truncated bbox rows and keeps the diamond box', function () {
+    $truncated = '{"th":14,"p":"iso","d":[20,0,980,900],"c":null,"b":[["town_hall",463,404,538,480,14],["cannon",300,300,350,350],["archer_tower",600,6';
+    Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => $truncated], 'finish_reason' => 'length']]], 200)]);
+
+    $result = app(LayoutVisionExtractor::class)->extractLayout(UploadedFile::fake()->image('b.jpg', 200, 200));
+    $data = $result['data'];
+
+    expect($result['ok'])->toBeTrue()
+        ->and($data['schema_version'])->toBe(2)
+        ->and($data['town_hall_level'])->toBe(14)
+        ->and($data['diamond_box'])->toBe([2.0, 0.0, 98.0, 90.0])
+        ->and(array_column($data['buildings'], 'type'))->toBe(['town_hall', 'cannon'])
+        ->and($data['buildings'][0]['level'])->toBe(14)
+        ->and($data['buildings'][1]['box'])->toBe([30.0, 30.0, 35.0, 35.0])
+        ->and($data['walls'])->toBe([]);
+});
+
+it('detects and repairs yxyx coordinate order', function () {
+    // لوزی بلندتر از پهن و شیب دیوارها > ۱ ⇒ محورها جابه‌جا شده‌اند.
+    // لوزی واقعی: x از ۱۰۰ تا ۹۰۰ و y از ۲۰۰ تا ۶۰۰؛ دیوارها با شیب واقعی ۰٫۵ — همه به ترتیب [y,x] نوشته شده‌اند.
+    $swapped = '{"th":13,"p":"iso","d":[200,100,600,900],"c":null,"b":[["town_hall",400,450,480,550],["cannon",300,300,350,350],["cannon",600,300,650,350]],'
+        .'"w":[[300,100,350,200],[350,200,400,300],[400,300,450,400],[450,400,500,500],[500,500,550,600],[550,600,600,700]]}';
+    Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => $swapped], 'finish_reason' => 'stop']]], 200)]);
+
+    $result = app(LayoutVisionExtractor::class)->extractLayout(UploadedFile::fake()->image('b.jpg', 200, 200));
+    $data = $result['data'];
+
+    expect($data['axes_swapped'])->toBeTrue()
+        ->and($data['diamond_box'])->toBe([10.0, 20.0, 90.0, 60.0])
+        ->and($data['buildings'][0]['box'])->toBe([45.0, 40.0, 55.0, 48.0])
+        ->and($data['buildings'][0]['x'])->toBe(50.0)
+        ->and($data['walls'][0])->toBe(['x1' => 10.0, 'y1' => 30.0, 'x2' => 20.0, 'y2' => 35.0]);
+});

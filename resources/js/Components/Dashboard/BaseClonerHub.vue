@@ -237,9 +237,19 @@
                             <span v-if="clone.th_level" class="text-amber-300"> · سطح {{ clone.th_level }}</span>
                         </p>
                     </div>
-                    <div v-if="!isDeck" class="flex items-center gap-1 bg-gray-900/80 rounded-xl p-1 border border-white/10">
-                        <button type="button" @click="iso = true" class="min-h-[32px] px-3 rounded-lg text-[11px] font-bold transition" :class="iso ? 'bg-fuchsia-600 text-white' : 'text-gray-300 hover:text-white'">نمای بازی</button>
-                        <button type="button" @click="iso = false" class="min-h-[32px] px-3 rounded-lg text-[11px] font-bold transition" :class="!iso ? 'bg-fuchsia-600 text-white' : 'text-gray-300 hover:text-white'">شبکه</button>
+                    <div v-if="!isDeck" class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center gap-1 bg-gray-900/80 rounded-xl p-1 border border-white/10">
+                            <button type="button" @click="iso = true" class="min-h-[32px] px-3 rounded-lg text-[11px] font-bold transition" :class="iso ? 'bg-fuchsia-600 text-white' : 'text-gray-300 hover:text-white'">نمای بازی</button>
+                            <button type="button" @click="iso = false" class="min-h-[32px] px-3 rounded-lg text-[11px] font-bold transition" :class="!iso ? 'bg-fuchsia-600 text-white' : 'text-gray-300 hover:text-white'">شبکه</button>
+                        </div>
+                        <button
+                            v-if="iso"
+                            type="button"
+                            @click="exportPng"
+                            :disabled="exporting"
+                            class="min-h-[36px] px-3 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/10 text-[11px] font-bold text-gray-100 transition disabled:opacity-50"
+                            title="دانلود تصویر چیدمان"
+                        >{{ exporting ? '⏳ در حال ساخت…' : '🖼️ خروجی PNG' }}</button>
                     </div>
                 </div>
 
@@ -248,7 +258,15 @@
                 <template v-else>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                         <div class="bg-gray-950 rounded-2xl p-2 border border-white/10">
-                            <BaseLayoutGrid :layout="clone.layout" :iso="iso" />
+                            <IsoBaseRenderer
+                                v-if="iso"
+                                ref="isoRenderer"
+                                :key="clone.slug"
+                                :layout="clone.layout"
+                                mode="view"
+                                :export-name="clone.slug"
+                            />
+                            <BaseLayoutGrid v-else :layout="clone.layout" />
                         </div>
                         <div class="bg-gray-950 rounded-2xl p-2 border border-white/10">
                             <img :src="clone.image_url" alt="تصویر اصلی" class="w-full rounded-xl object-contain max-h-80">
@@ -260,7 +278,9 @@
                         <span class="px-2.5 py-1 rounded-full bg-gray-800 text-gray-200 border border-white/10">🧱 {{ layoutStats.wall_count }} دیوار</span>
                         <span v-for="(count, cat) in layoutStats.by_category" :key="cat" class="px-2.5 py-1 rounded-full bg-gray-800 text-gray-300 border border-white/10">{{ categoryLabel(cat) }}: {{ count }}</span>
                         <span v-if="layoutStats.unplaced_count" class="px-2.5 py-1 rounded-full bg-red-500/20 text-red-200 border border-red-500/30">⚠️ {{ layoutStats.unplaced_count }} ساختمان جا نشد</span>
+                        <span v-if="layoutStats.uncertain_count > 0" class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-100 border border-amber-500/40" title="این ساختمان‌ها روی نقشه با حلقهٔ چشمک‌زن و نشان «؟» مشخص شده‌اند">؟ {{ layoutStats.uncertain_count }} ساختمان نامطمئن</span>
                         <span v-if="clone.layout.corners_source !== 'model'" class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30">مقیاس تخمینی</span>
+                        <span v-if="(clone.layout.warnings || []).includes('th_unreliable')" class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30" title="سطح تاون‌هال خوانده‌شده با ساختمان‌های تشخیص‌داده‌شده نمی‌خواند؛ سقف تعداد ساختمان‌ها اعمال نشده است.">⚠️ سطح تاون‌هال نامطمئن — تأیید کنید</span>
                     </div>
                 </template>
 
@@ -320,6 +340,7 @@
 <script>
 import { defineComponent, h } from 'vue'
 import BaseLayoutGrid from './BaseLayoutGrid.vue'
+import IsoBaseRenderer from './Iso/IsoBaseRenderer.vue'
 import DeckCardList from './DeckCardList.vue'
 
 const CATEGORY_LABELS = { core: 'هسته', hero: 'هیرو', defense: 'دفاع', resource: 'منابع', army: 'ارتش', other: 'سایر' }
@@ -418,7 +439,7 @@ const MatchRow = defineComponent({
 
 export default {
     name: 'BaseClonerHub',
-    components: { BaseLayoutGrid, DeckCardList, LinkActions, MatchRow },
+    components: { BaseLayoutGrid, IsoBaseRenderer, DeckCardList, LinkActions, MatchRow },
     props: {
         initialGame: {
             type: String,
@@ -441,6 +462,7 @@ export default {
             errorMatches: [],
             result: null,
             iso: true,
+            exporting: false,
             myClones: [],
             deletingSlug: null,
             copiedKey: null,
@@ -518,6 +540,19 @@ export default {
         if (this.pasteHandler) window.removeEventListener('paste', this.pasteHandler)
     },
     methods: {
+        /**
+         * خروجی PNG از نمای بازی (رندرر ایزومتریک).
+         */
+        async exportPng() {
+            const r = this.$refs.isoRenderer
+            if (!r || this.exporting) return
+            this.exporting = true
+            try {
+                await r.exportPng(this.clone?.slug || 'layout')
+            } finally {
+                this.exporting = false
+            }
+        },
         categoryLabel(cat) {
             return CATEGORY_LABELS[cat] || cat
         },

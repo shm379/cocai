@@ -32,7 +32,7 @@ class CocBuilderAdapter extends CocLayoutAdapter
         ];
     }
 
-    protected function catalog(): BuildingCatalog
+    public function catalog(): BuildingCatalog
     {
         return new BuilderBaseCatalog;
     }

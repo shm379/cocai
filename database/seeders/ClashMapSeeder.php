@@ -10,6 +10,13 @@ class ClashMapSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * توجه: این نقشه‌ها نمونه‌های نمایشی‌اند و «لینک کپی داخل بازی» ندارند (copy_link = null).
+     * لینک OpenLayout یک شناسهٔ ۳۲ کاراکتری است که فقط خود بازی صادر می‌کند و قابل ساختن نیست؛
+     * شناسه‌های جای‌گذار قبلی (مثل TH18_WAR_META_01) در بازی باز نمی‌شدند و Base Cloner آن‌ها را
+     * به‌اشتباه به‌عنوان لینک واقعی برمی‌گرداند. لینک‌های واقعی فقط از آرشیو Clasher.us
+     * (php artisan fetch:clasher) می‌آیند و با Map::hasValidCopyLink() بررسی می‌شوند.
+     * map_link فقط کلید یکتای رکورد است و به‌عنوان لینک بازی استفاده نمی‌شود.
      */
     public function run(): void
     {
@@ -20,7 +27,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH18_WAR_META_01',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH18_WAR_META_01',
+                'copy_link' => null,
                 'view_count' => 14200,
                 'download_count' => 5200,
                 'like_count' => 980,
@@ -34,7 +41,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH17_WAR_META_02',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH17_WAR_META_02',
+                'copy_link' => null,
                 'view_count' => 28500,
                 'download_count' => 11200,
                 'like_count' => 1840,
@@ -47,7 +54,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH17_TROPHY_01',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH17_TROPHY_01',
+                'copy_link' => null,
                 'view_count' => 19300,
                 'download_count' => 7400,
                 'like_count' => 1250,
@@ -61,7 +68,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH16_WAR_ANTI3',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH16_WAR_ANTI3',
+                'copy_link' => null,
                 'view_count' => 45000,
                 'download_count' => 18900,
                 'like_count' => 3100,
@@ -74,7 +81,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH16_FARM_01',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH16_FARM_01',
+                'copy_link' => null,
                 'view_count' => 22000,
                 'download_count' => 8900,
                 'like_count' => 1430,
@@ -88,7 +95,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH15_WAR_LEAGUE',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH15_WAR_LEAGUE',
+                'copy_link' => null,
                 'view_count' => 38000,
                 'download_count' => 15600,
                 'like_count' => 2650,
@@ -102,7 +109,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH14_HYBRID_01',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH14_HYBRID_01',
+                'copy_link' => null,
                 'view_count' => 31000,
                 'download_count' => 13400,
                 'like_count' => 2100,
@@ -116,7 +123,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH13_WAR_ANTI3',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH13_WAR_ANTI3',
+                'copy_link' => null,
                 'view_count' => 27000,
                 'download_count' => 11800,
                 'like_count' => 1890,
@@ -130,7 +137,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH12_WAR_01',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH12_WAR_01',
+                'copy_link' => null,
                 'view_count' => 24000,
                 'download_count' => 10200,
                 'like_count' => 1650,
@@ -144,7 +151,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH11_WAR_EAGLE',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=TH11_WAR_EAGLE',
+                'copy_link' => null,
                 'view_count' => 18500,
                 'download_count' => 7800,
                 'like_count' => 1240,
@@ -161,7 +168,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=BH10_META_01',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=BH10_META_01',
+                'copy_link' => null,
                 'view_count' => 16500,
                 'download_count' => 6900,
                 'like_count' => 1120,
@@ -175,7 +182,7 @@ class ClashMapSeeder extends Seeder
                 'image_url' => 'https://api-assets.clashofclans.com/leagues/288/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'thumbnail_url' => 'https://api-assets.clashofclans.com/leagues/72/R2zmhyqQ0_lKcDR5EyghXCxghC9E45Tma1OHCXQ272Y.png',
                 'map_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=BH9_OTTO_FAST',
-                'copy_link' => 'https://link.clashofclans.com/en?action=OpenLayout&id=BH9_OTTO_FAST',
+                'copy_link' => null,
                 'view_count' => 22000,
                 'download_count' => 9800,
                 'like_count' => 1560,

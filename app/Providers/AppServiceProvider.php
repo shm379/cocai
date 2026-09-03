@@ -12,7 +12,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // یک نمونه در هر درخواست تا ChatbotService و AiAgentService آخرین خطای gateway را مشترک ببینند
+        $this->app->scoped(\App\Services\AI\NabuGateClient::class);
     }
 
     /**

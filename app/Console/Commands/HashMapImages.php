@@ -48,13 +48,22 @@ class HashMapImages extends Command
         $failed = 0;
 
         foreach ($maps as $map) {
-            $url = $map->thumbnail_url ?: $map->image_url;
-
-            try {
-                $response = Http::timeout(20)->connectTimeout(8)->get($url);
-                $hash = $response->ok() ? $hasher->hashBinary($response->body()) : null;
-            } catch (\Throwable $e) {
-                $hash = null;
+            // تصویر کامل همان فریم اسکرین‌شات کاربر است (فاصلهٔ هش ۰)؛ بندانگشتی ۳۵۰px برش/مقیاس دیگری دارد (فاصله ~۱۲).
+            // img.clasher.us مسیر /fullo/ را پاسخ نمی‌دهد ولی /full/ را می‌دهد.
+            $hash = null;
+            foreach ($this->candidateUrls($map) as $url) {
+                try {
+                    $response = Http::withHeaders(['User-Agent' => 'Mozilla/5.0 (cocai maps:hash)'])
+                        ->timeout(25)->connectTimeout(8)->get($url);
+                    if ($response->ok() && strlen($response->body()) > 2000) {
+                        $hash = $hasher->hashBinary($response->body());
+                    }
+                } catch (\Throwable $e) {
+                    $hash = null;
+                }
+                if ($hash !== null) {
+                    break;
+                }
             }
 
             if ($hash !== null) {
@@ -73,5 +82,24 @@ class HashMapImages extends Command
         $this->info("هش شد: {$ok}، ناموفق: {$failed}");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * ترتیب تلاش: تصویر کامل (full)، سپس image_url خام، در نهایت بندانگشتی.
+     *
+     * @return array<int, string>
+     */
+    protected function candidateUrls(Map $map): array
+    {
+        $urls = [];
+        if ($map->image_url) {
+            $urls[] = str_replace('/images/fullo/', '/images/full/', $map->image_url);
+            $urls[] = $map->image_url;
+        }
+        if ($map->thumbnail_url) {
+            $urls[] = $map->thumbnail_url;
+        }
+
+        return array_values(array_unique($urls));
     }
 }

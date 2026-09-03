@@ -69,35 +69,35 @@ class FetchClasher extends Command
         parent::__construct();
 
         for ($i = 1; $i <= 17; $i++) {
-            $this->apiEndpoints["town_hall_{$i}_trophy_base"] = "http://www.clasher.us/api/mobile/designs/town-hall-{$i}-trophy-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["town_hall_{$i}_war_base"] = "http://www.clasher.us/api/mobile/designs/town-hall-{$i}-war-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["town_hall_{$i}_farming_base"] = "http://www.clasher.us/api/mobile/designs/town-hall-{$i}-farming-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["town_hall_{$i}_hybrid_base"] = "http://www.clasher.us/api/mobile/designs/town-hall-{$i}-hybrid-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["town_hall_{$i}_progress_base"] = "http://www.clasher.us/api/mobile/designs/town-hall-{$i}-progress-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["town_hall_{$i}_funny_base"] = "http://www.clasher.us/api/mobile/designs/town-hall-{$i}-funny-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["town_hall_{$i}_guides"] = "http://www.clasher.us/api/mobile/guides_all?cat=town-hall-{$i}";
+            $this->apiEndpoints["town_hall_{$i}_trophy_base"] = "https://www.clasher.us/api/mobile/designs/town-hall-{$i}-trophy-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["town_hall_{$i}_war_base"] = "https://www.clasher.us/api/mobile/designs/town-hall-{$i}-war-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["town_hall_{$i}_farming_base"] = "https://www.clasher.us/api/mobile/designs/town-hall-{$i}-farming-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["town_hall_{$i}_hybrid_base"] = "https://www.clasher.us/api/mobile/designs/town-hall-{$i}-hybrid-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["town_hall_{$i}_progress_base"] = "https://www.clasher.us/api/mobile/designs/town-hall-{$i}-progress-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["town_hall_{$i}_funny_base"] = "https://www.clasher.us/api/mobile/designs/town-hall-{$i}-funny-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["town_hall_{$i}_guides"] = "https://www.clasher.us/api/mobile/guides_all?cat=town-hall-{$i}";
         }
 
         for ($i = 1; $i <= 10; $i++) {
-            $this->apiEndpoints["builder_hall_{$i}_guides"] = "http://www.clasher.us/api/mobile/guides_all?cat=builder-hall-{$i}";
-            $this->apiEndpoints["builder_hall_{$i}_funny_base"] = "http://www.clasher.us/api/mobile/designs/builder-hall-{$i}-funny-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["builder_hall_{$i}_trophy_base"] = "http://www.clasher.us/api/mobile/designs/builder-hall-{$i}-trophy-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["builder_hall_{$i}_war_base"] = "http://www.clasher.us/api/mobile/designs/builder-hall-{$i}-war-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["builder_hall_{$i}_farming_base"] = "http://www.clasher.us/api/mobile/designs/builder-hall-{$i}-farming-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["builder_hall_{$i}_hybrid_base"] = "http://www.clasher.us/api/mobile/designs/builder-hall-{$i}-hybrid-base?sort=like&no_mark=ok";
-            $this->apiEndpoints["builder_hall_{$i}_progress_base"] = "http://www.clasher.us/api/mobile/designs/builder-hall-{$i}-progress-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["builder_hall_{$i}_guides"] = "https://www.clasher.us/api/mobile/guides_all?cat=builder-hall-{$i}";
+            $this->apiEndpoints["builder_hall_{$i}_funny_base"] = "https://www.clasher.us/api/mobile/designs/builder-hall-{$i}-funny-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["builder_hall_{$i}_trophy_base"] = "https://www.clasher.us/api/mobile/designs/builder-hall-{$i}-trophy-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["builder_hall_{$i}_war_base"] = "https://www.clasher.us/api/mobile/designs/builder-hall-{$i}-war-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["builder_hall_{$i}_farming_base"] = "https://www.clasher.us/api/mobile/designs/builder-hall-{$i}-farming-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["builder_hall_{$i}_hybrid_base"] = "https://www.clasher.us/api/mobile/designs/builder-hall-{$i}-hybrid-base?sort=like&no_mark=ok";
+            $this->apiEndpoints["builder_hall_{$i}_progress_base"] = "https://www.clasher.us/api/mobile/designs/builder-hall-{$i}-progress-base?sort=like&no_mark=ok";
         }
 
         $this->apiEndpoints = array_merge($this->apiEndpoints, [
-            'units' => 'http://www.clasher.us/api/mobile/units',
-            'ads' => 'http://www.clasher.us/app-ads/ads.json',
-            'beginner_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=beginners-guides',
-            'free_gems_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=get-free-gems',
-            'army_compositions_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=amy-compositions',
-            'gameplay_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=gameplay',
-            'clan_war_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=clan-war',
-            'base_layouts_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=base-layouts-design',
-            'attack_tactics_guides' => 'http://www.clasher.us/api/mobile/guides_all?cat=tactics-attack-strategies',
+            'units' => 'https://www.clasher.us/api/mobile/units',
+            'ads' => 'https://www.clasher.us/app-ads/ads.json',
+            'beginner_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=beginners-guides',
+            'free_gems_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=get-free-gems',
+            'army_compositions_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=amy-compositions',
+            'gameplay_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=gameplay',
+            'clan_war_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=clan-war',
+            'base_layouts_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=base-layouts-design',
+            'attack_tactics_guides' => 'https://www.clasher.us/api/mobile/guides_all?cat=tactics-attack-strategies',
         ]);
     }
 

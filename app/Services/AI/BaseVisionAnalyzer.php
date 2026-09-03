@@ -24,6 +24,9 @@ class BaseVisionAnalyzer
     /** آخرین خطای فراخوانی مدل (برای پیام دقیق به کاربر و لاگ). */
     protected ?array $lastError = null;
 
+    /** ابعاد اصلی آخرین تصویر ارسال‌شده [width, height] (پیش از resize). */
+    protected ?array $lastImageSize = null;
+
     public function __construct()
     {
         $this->baseUrl = rtrim(config('services.nabu.base_url') ?? '', '/');
@@ -52,6 +55,16 @@ class BaseVisionAnalyzer
     public function lastError(): ?array
     {
         return $this->lastError;
+    }
+
+    /**
+     * ابعاد اصلی آخرین تصویر ارسال‌شده به مدل (برای بررسی هندسی مختصات).
+     *
+     * @return array{0:int,1:int}|null
+     */
+    public function lastImageSize(): ?array
+    {
+        return $this->lastImageSize;
     }
 
     /**
@@ -144,6 +157,9 @@ class BaseVisionAnalyzer
         if (! file_exists($path) || ! is_readable($path)) {
             return null;
         }
+
+        $info = @getimagesize($path);
+        $this->lastImageSize = $info ? [(int) $info[0], (int) $info[1]] : null;
 
         $resizedPath = $this->resizeImage($path, 1024);
         if ($resizedPath === null) {

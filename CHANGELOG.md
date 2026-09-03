@@ -2,6 +2,21 @@
 
 فرمت این فایل بر اساس [Keep a Changelog](https://keepachangelog.com/fa-IR/1.1.0/) است.
 
+## [1.4.0] - 2026-09-03
+
+### افزوده‌شده
+- **آرشیو واقعی نقشه‌ها**: ۱۳٬۳۷۳ نقشهٔ Clasher.us با لینک واقعی `OpenLayout` (از دامپ `cocai.sql` ژانویه ۲۰۲۵) به پروداکشن و محیط محلی بازگردانده شد؛ ۱۶۱ topic با سطح تاون‌هال/بیلدرهال، ۷۱ هزار ارتباط map_topic، guides و units.
+- **اسپرایت‌های واقعی بازی**: manifest `database/data/coc/sprites.json`، دستور `php artisan coc:sprites` (فایل‌های محلی + تکمیل از ویکی Fandom با API)، ۱۰۵ اسپرایت در `public/images/coc/buildings/{home,builder,walls,ground}` (۳٫۸ مگابایت، ≤۲۵۶px)؛ `BuildingCatalog::get()` کلید `sprite` و `spriteFor(type, level)` (تاون‌هال/بیلدرهال به تفکیک سطح) می‌دهد.
+- **رندر ایزومتریک شبیه بازی** (`Components/Dashboard/Iso/*`): SVG با یک transform، لوزی چمن، دیوارهای خودکار متصل، اسپرایت‌ها لنگرشده به کف footprint، z-order نقاش، tooltip/انتخاب، نشان «؟» برای ساختمان‌های نامطمئن، pan/zoom/fit، خروجی PNG.
+- **ویرایشگر چیدمان برای مالک** (`Components/Dashboard/Editor/*`): جابه‌جایی با درگ و snap، افزودن از پالت، حذف، تغییر نوع/سطح، رسم/پاک‌کردن دیوار، undo/redo، پنل «نامطمئن‌ها» با تأیید/جای‌گذاری/حذف، D-pad، ذخیره با `PUT /api/base-clones/{slug}/layout` (اعتبارسنجی سخت‌گیرانهٔ سرور، ۴۰۹ برای نسخهٔ قدیمی)، `GET /api/base-clones/catalog`, `GET /api/base-clones/{slug}`.
+- **دقت**: قرارداد Vision نسخهٔ ۲ با bbox (۰–۱۰۰۰)، `GeometrySolver` (مقیاس از boxes/گوشه‌ها/لوزی، محورهای ۲:۱ با گیت شیب دیوار، قفل شبکه)، `BuildingCaps` (سقف تعداد هر ساختمان بر اساس تاون‌هال ۹–۱۷)، `LayoutStats`، confidence/uncertain/flags/alternatives برای هر ساختمان، `layout.version=2`.
+- **تطبیق آرشیو**: `LayoutSignature` (تطبیق نوع/موقعیت ±۲ خانه + IoU دیوار) کنار dHash؛ `Map::hasValidCopyLink()` فقط لینک‌های با فرمت واقعی را عبور می‌دهد؛ دستور `maps:signature --limit --th`؛ `maps:hash` تصویر کامل (`/images/full/`) را هش می‌کند (بندانگشتی فاصلهٔ ۱۲ می‌دهد، تصویر کامل ۰).
+- تست‌ها: GeometrySolverTest، BuildingCapsTest، BaseCloneLayoutEditTest، LayoutSignatureMatchTest و به‌روزرسانی تست‌های قبلی (۱۶۵ تست).
+
+### تغییریافته
+- لینک‌های placeholder در `ClashMapSeeder` حذف شد (null)؛ `FetchClasher` روی https.
+- یادداشت: تست‌ها را با `DB_CONNECTION=sqlite DB_DATABASE=:memory: CACHE_STORE=array` اجرا کنید تا دیتابیس توسعه پاک نشود.
+
 ## [1.3.0] - 2026-09-02
 
 ### افزوده‌شده
