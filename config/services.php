@@ -40,7 +40,8 @@ return [
         'api_key' => env('NABU_API_KEY', '8280820Hh@'),
         'model' => env('NABU_MODEL', 'openrouter2/google/gemini-2.5-flash'),
         // زنجیرهٔ fallback برای چت/پرسش‌وپاسخ: اگر `model` جواب نداد (502/402/خالی) به ترتیب امتحان می‌شوند
-        'fallback_models' => env('NABU_FALLBACK_MODELS', 'nabu-smart,nabu-fast'),
+        // nabu-fast اول: روی gateway ~۸ ثانیه پاسخ می‌دهد؛ nabu-smart (Sonnet) ~۳۰ ثانیه (اندازه‌گیری ۲۰۲۶-۰۹-۰۳)
+        'fallback_models' => env('NABU_FALLBACK_MODELS', 'nabu-fast,nabu-smart'),
         // بودجهٔ کل یک فراخوانی چت (همهٔ مدل‌های fallback و تکرارها روی هم)، نه مهلت هر تلاش
         'chat_timeout' => (int) env('NABU_CHAT_TIMEOUT', 45),
         // مدل مخصوص تصویر؛ اگر در دسترس نبود، به‌صورت خودکار روی `model` می‌افتد
