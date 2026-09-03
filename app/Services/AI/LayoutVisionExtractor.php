@@ -63,9 +63,14 @@ class LayoutVisionExtractor extends BaseVisionAnalyzer
 
         $data = $this->parseLayoutJson($response['content'], $this->lastImageSize());
         if ($data === null) {
+            $garbage = $this->looksLikeGarbage($response['content']);
+
             return [
                 'ok' => false,
-                'message' => 'خروجی مدل Vision قابل تفسیر نبود. لطفاً تصویر واضح‌تری از کل بیس آپلود کنید.',
+                'reason' => $garbage ? 'server' : 'parse',
+                'message' => $garbage
+                    ? 'سرویس هوش مصنوعی پاسخ نامعتبر برگرداند (مشکل از سمت سرویس است، نه تصویر شما). کمی بعد دوباره تلاش کنید.'
+                    : 'خروجی مدل Vision قابل تفسیر نبود. لطفاً تصویر واضح‌تری از کل بیس آپلود کنید.',
                 'raw_content' => $response['content'],
             ];
         }
@@ -558,6 +563,16 @@ class LayoutVisionExtractor extends BaseVisionAnalyzer
         $data['walls'] = $walls;
 
         return $data;
+    }
+
+    /**
+     * پاسخی که اصلاً JSON ندارد (مثلاً نشت chain-of-thought مدل یا متن خالی از ساختار) خطای سرویس است، نه تصویر کاربر.
+     */
+    protected function looksLikeGarbage(string $content): bool
+    {
+        $c = trim($content);
+
+        return $c === '' || strpos($c, '{') === false || preg_match('/^\[?\s*(Preamble|ARC-|The user is asking|Thinking|Reasoning)/i', $c) === 1;
     }
 
     protected function systemPrompt(): string

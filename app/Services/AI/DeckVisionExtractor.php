@@ -35,9 +35,14 @@ class DeckVisionExtractor extends BaseVisionAnalyzer
 
         $data = $this->parseDeckJson($response['content']);
         if ($data === null || $data['cards'] === []) {
+            $garbage = $data === null && $this->looksLikeGarbage($response['content']);
+
             return [
                 'ok' => false,
-                'message' => 'هیچ کارتی در تصویر تشخیص داده نشد. اسکرین‌شات واضحی از ۸ کارت دک بفرستید.',
+                'reason' => $garbage ? 'server' : 'parse',
+                'message' => $garbage
+                    ? 'سرویس هوش مصنوعی پاسخ نامعتبر برگرداند (مشکل از سمت سرویس است، نه تصویر شما). کمی بعد دوباره تلاش کنید.'
+                    : 'هیچ کارتی در تصویر تشخیص داده نشد. اسکرین‌شات واضحی از ۸ کارت دک بفرستید.',
                 'raw_content' => $response['content'],
             ];
         }
@@ -101,6 +106,16 @@ class DeckVisionExtractor extends BaseVisionAnalyzer
             'tower_troop' => is_string($data['tower_troop'] ?? null) ? trim($data['tower_troop']) : null,
             'source' => is_string($data['source'] ?? null) ? $data['source'] : 'unknown',
         ];
+    }
+
+    /**
+     * پاسخی که اصلاً JSON ندارد (مثلاً نشت chain-of-thought مدل یا متن خالی از ساختار) خطای سرویس است، نه تصویر کاربر.
+     */
+    protected function looksLikeGarbage(string $content): bool
+    {
+        $c = trim($content);
+
+        return $c === '' || strpos($c, '{') === false || preg_match('/^\[?\s*(Preamble|ARC-|The user is asking|Thinking|Reasoning)/i', $c) === 1;
     }
 
     protected function systemPrompt(): string

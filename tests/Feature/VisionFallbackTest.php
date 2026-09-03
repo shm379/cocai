@@ -182,3 +182,12 @@ it('detects and repairs yxyx coordinate order', function () {
         ->and($data['buildings'][0]['x'])->toBe(50.0)
         ->and($data['walls'][0])->toBe(['x1' => 10.0, 'y1' => 30.0, 'x2' => 20.0, 'y2' => 35.0]);
 });
+
+it('reports a service problem, not an image problem, when the model leaks reasoning instead of JSON', function () {
+    Http::fake(['*' => Http::response(['choices' => [['message' => ['content' => '[Preamble: This is an internal thinking process for a large language model. The user is asking to create an ARC...']]]], 200)]);
+
+    $this->actingAs(User::factory()->create())
+        ->postJson('/api/base-clones', ['image' => UploadedFile::fake()->image('b.jpg', 200, 200), 'game' => 'coc_home'])
+        ->assertStatus(503)
+        ->assertJsonPath('reason', 'server');
+});
