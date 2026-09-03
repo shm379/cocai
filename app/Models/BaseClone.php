@@ -95,7 +95,8 @@ class BaseClone extends Model
             'image_url' => Storage::url($this->image_path),
             'layout' => $layout,
             'layout_version' => is_array($layout) ? ($layout['version'] ?? null) : null,
-            'can_edit' => $forOwner && (($layout['type'] ?? 'layout') === 'layout'),
+            'pending' => (bool) ($layout['pending'] ?? false),
+            'can_edit' => $forOwner && (($layout['type'] ?? 'layout') === 'layout') && empty($layout['pending']),
             // لینک بازی فقط اگر واقعی باشد (Map::isValidCopyLink)؛ لینک دک کلش رویال ساختار دیگری دارد و عبور می‌کند.
             'copy_link' => $this->publicCopyLink($map, $layout),
             'share_url' => $this->share_url,

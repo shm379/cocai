@@ -94,6 +94,7 @@ class BaseCloneController extends Controller
             'ok' => true,
             'clone' => $result['clone']->toPublicArray(true),
             'matches' => $result['matches'],
+            'matched_first' => (bool) ($result['matched_first'] ?? false),
         ], 201);
     }
 
@@ -112,6 +113,39 @@ class BaseCloneController extends Controller
         return Inertia::render('BaseClone/Show', [
             'clone' => $clone->toPublicArray($isOwner),
             'isOwner' => $isOwner,
+        ]);
+    }
+
+    /**
+     * بازسازی چیدمان با AI برای بیسی که اول از آرشیو پیدا شده (فقط مالک).
+     */
+    public function reconstruct(Request $request, BaseClone $clone)
+    {
+        if ($clone->user_id !== $request->user()->id) {
+            return response()->json(['ok' => false, 'message' => 'شما اجازهٔ این کار را ندارید.'], 403);
+        }
+
+        if (! $this->service->isConfigured($clone->game)) {
+            return response()->json(['ok' => false, 'message' => 'AI Vision پیکربندی نشده است.', 'reason' => 'connection'], 503);
+        }
+
+        $result = $this->service->reconstruct($clone);
+
+        if (! $result['ok']) {
+            $infra = in_array($result['reason'] ?? '', ['connection', 'auth', 'model', 'server', 'timeout'], true);
+
+            return response()->json([
+                'ok' => false,
+                'message' => $result['message'],
+                'reason' => $result['reason'] ?? 'unknown',
+                'matches' => $result['matches'] ?? [],
+            ], $infra ? 503 : 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'clone' => $result['clone']->toPublicArray(true),
+            'matches' => $result['matches'],
         ]);
     }
 

@@ -197,6 +197,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/base-clones/{clone}', [BaseCloneController::class, 'showJson'])->name('base-clone.json');
     Route::put('/api/base-clones/{clone}/layout', [BaseCloneController::class, 'updateLayout'])
         ->middleware('throttle:30,1')->name('base-clone.layout.update');
+    Route::post('/api/base-clones/{clone}/reconstruct', [BaseCloneController::class, 'reconstruct'])
+        ->middleware('throttle:6,1')->name('base-clone.reconstruct');
     Route::delete('/api/base-clones/{clone}', [BaseCloneController::class, 'destroy'])->name('base-clone.destroy');
 });
 // صفحهٔ عمومی بیس بازسازی‌شده (قابل اشتراک بدون ورود)

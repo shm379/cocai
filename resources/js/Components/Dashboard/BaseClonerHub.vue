@@ -188,7 +188,7 @@
                     <div class="min-w-0">
                         <p class="text-sm sm:text-base font-black text-emerald-100">
                             <template v-if="isDeck">لینک رسمی کپی دک آماده است</template>
-                            <template v-else>همین بیس در آرشیو پیدا شد (شباهت {{ clone.match_similarity }}٪)</template>
+                            <template v-else>همین بیس در آرشیو پیدا شد (شباهت {{ clone.match_similarity }}٪){{ result.matched_first ? ' — بدون نیاز به AI' : '' }}</template>
                         </p>
                         <p class="text-[11px] text-emerald-200/80 mt-0.5">
                             <template v-if="isDeck">روی «باز کردن در بازی» بزن تا دک مستقیم در کلش رویال کپی شود.</template>
@@ -237,7 +237,7 @@
                             <span v-if="clone.th_level" class="text-amber-300"> · سطح {{ clone.th_level }}</span>
                         </p>
                     </div>
-                    <div v-if="!isDeck" class="flex items-center gap-2 flex-wrap">
+                    <div v-if="!isDeck && !clone.pending" class="flex items-center gap-2 flex-wrap">
                         <div class="flex items-center gap-1 bg-gray-900/80 rounded-xl p-1 border border-white/10">
                             <button type="button" @click="iso = true" class="min-h-[32px] px-3 rounded-lg text-[11px] font-bold transition" :class="iso ? 'bg-fuchsia-600 text-white' : 'text-gray-300 hover:text-white'">نمای بازی</button>
                             <button type="button" @click="iso = false" class="min-h-[32px] px-3 rounded-lg text-[11px] font-bold transition" :class="!iso ? 'bg-fuchsia-600 text-white' : 'text-gray-300 hover:text-white'">شبکه</button>
@@ -254,6 +254,36 @@
                 </div>
 
                 <DeckCardList v-if="isDeck" :layout="clone.layout" />
+
+                <!-- یافت‌شده در آرشیو: هنوز با AI بازسازی نشده -->
+                <div v-else-if="clone.pending" class="space-y-3" data-result>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                        <div class="bg-gray-950 rounded-2xl p-2 border border-emerald-500/30">
+                            <img v-if="clone.matched_map?.image_url" :src="clone.matched_map.image_url" alt="نقشهٔ آرشیو" class="w-full rounded-xl object-contain max-h-80">
+                            <p class="text-[10px] text-emerald-300 mt-1 text-center">نسخهٔ آرشیو (همان بیس با لینک بازی)</p>
+                        </div>
+                        <div class="bg-gray-950 rounded-2xl p-2 border border-white/10">
+                            <img :src="clone.image_url" alt="تصویر شما" class="w-full rounded-xl object-contain max-h-80">
+                            <p class="text-[10px] text-gray-500 mt-1 text-center">تصویر شما</p>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl bg-white/[0.04] border border-white/10 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                        <p class="text-[12px] text-gray-300 leading-relaxed flex-1">
+                            چون همین بیس در آرشیو بود، لینک کپی بازی همان لحظه آماده شد و نیازی به بازسازی نیست.
+                            اگر می‌خواهی چیدمان روی شبکه هم داشته باشی، بازسازی با AI را بزن (حدود ۱ دقیقه؛ دقت مدل هنوز کامل نیست).
+                        </p>
+                        <button
+                            type="button"
+                            @click="reconstruct"
+                            :disabled="reconstructing"
+                            class="min-h-[44px] px-4 rounded-2xl bg-gradient-to-l from-fuchsia-600 to-cyan-500 hover:from-fuchsia-500 hover:to-cyan-400 text-white text-xs font-black shadow transition disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+                        >
+                            <span v-if="reconstructing" class="animate-spin inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                            <span>{{ reconstructing ? 'در حال بازسازی…' : '🧬 بازسازی چیدمان با AI (اختیاری)' }}</span>
+                        </button>
+                    </div>
+                    <p v-if="reconstructError" class="text-[11px] text-red-200 bg-red-500/10 border border-red-500/30 rounded-xl p-2">{{ reconstructError }}</p>
+                </div>
 
                 <template v-else>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
@@ -459,6 +489,8 @@ export default {
             elapsedTimer: null,
             error: null,
             errorReason: null,
+            reconstructing: false,
+            reconstructError: null,
             errorMatches: [],
             result: null,
             iso: true,
@@ -704,7 +736,8 @@ export default {
                     headers: { 'Content-Type': 'multipart/form-data' },
                     timeout: 240000,
                 })
-                this.result = { clone: data.clone, matches: data.matches || [] }
+                this.result = { clone: data.clone, matches: data.matches || [], matched_first: !!data.matched_first }
+                this.reconstructError = null
                 this.fetchMine()
                 this.$nextTick(() => {
                     this.$el.querySelector('[data-result]')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
@@ -719,6 +752,21 @@ export default {
             } finally {
                 this.loading = false
                 this.stopTimer()
+            }
+        },
+        async reconstruct() {
+            if (!this.clone || this.reconstructing) return
+            this.reconstructing = true
+            this.reconstructError = null
+            try {
+                const { data } = await window.axios.post(`/api/base-clones/${this.clone.slug}/reconstruct`, {}, { timeout: 240000 })
+                this.result = { ...this.result, clone: data.clone }
+                this.fetchMine()
+            } catch (err) {
+                const data = err.response?.data
+                this.reconstructError = data?.message || 'بازسازی انجام نشد؛ کمی بعد دوباره تلاش کن.'
+            } finally {
+                this.reconstructing = false
             }
         },
         async fetchMine() {

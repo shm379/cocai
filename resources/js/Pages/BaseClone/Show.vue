@@ -69,7 +69,7 @@
                 <div class="rounded-3xl bg-white/[0.03] border border-white/10 p-4 sm:p-5 space-y-3">
                     <div class="flex items-center justify-between flex-wrap gap-2">
                         <p class="text-sm font-black">{{ isDeck ? '🃏 دک خوانده‌شده' : '🗺️ چیدمان بازسازی‌شده روی شبکهٔ ۴۴×۴۴' }}</p>
-                        <div v-if="!isDeck" class="flex items-center gap-2 flex-wrap">
+                        <div v-if="!isDeck && !isPending" class="flex items-center gap-2 flex-wrap">
                             <button
                                 v-if="canEdit"
                                 type="button"
@@ -107,6 +107,31 @@
                         @close="editing = false"
                     />
 
+                    <!-- یافت‌شده در آرشیو؛ چیدمان هنوز بازسازی نشده -->
+                    <div v-else-if="isPending" class="space-y-3">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                            <div class="bg-gray-950 rounded-2xl p-2 border border-emerald-500/30">
+                                <img v-if="model.matched_map?.image_url" :src="model.matched_map.image_url" alt="نقشهٔ آرشیو" class="w-full rounded-xl object-contain max-h-96">
+                                <p class="text-[10px] text-emerald-300 mt-1 text-center">نسخهٔ آرشیو (همان بیس با لینک بازی)</p>
+                            </div>
+                            <div class="bg-gray-950 rounded-2xl p-2 border border-white/10">
+                                <img :src="model.image_url" alt="تصویر اصلی" class="w-full rounded-xl object-contain max-h-96">
+                                <p class="text-[10px] text-gray-500 mt-1 text-center">تصویر اصلی</p>
+                            </div>
+                        </div>
+                        <div class="rounded-2xl bg-white/[0.04] border border-white/10 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                            <p class="text-[12px] text-gray-300 flex-1">این بیس مستقیم از آرشیو پیدا شد؛ چیدمان روی شبکه هنوز بازسازی نشده است.</p>
+                            <button
+                                v-if="isOwner"
+                                type="button"
+                                @click="reconstruct"
+                                :disabled="reconstructing"
+                                class="min-h-[44px] px-4 rounded-2xl bg-gradient-to-l from-fuchsia-600 to-cyan-500 text-white text-xs font-black shadow transition disabled:opacity-50 shrink-0"
+                            >{{ reconstructing ? 'در حال بازسازی…' : '🧬 بازسازی چیدمان با AI' }}</button>
+                        </div>
+                        <p v-if="reconstructError" class="text-[11px] text-red-200 bg-red-500/10 border border-red-500/30 rounded-xl p-2">{{ reconstructError }}</p>
+                    </div>
+
                     <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
                         <div class="bg-gray-950 rounded-2xl p-2 border border-white/10">
                             <DeckCardList v-if="isDeck" :layout="model.layout" />
@@ -133,7 +158,7 @@
                 </div>
 
                 <!-- فهرست ساختمان‌ها (فقط چیدمان) -->
-                <div v-if="!isDeck" class="rounded-3xl bg-white/[0.03] border border-white/10 p-4 sm:p-5">
+                <div v-if="!isDeck && !isPending" class="rounded-3xl bg-white/[0.03] border border-white/10 p-4 sm:p-5">
                     <p class="text-sm font-black mb-2">📋 فهرست ساختمان‌ها (برای ساخت خانه‌به‌خانه)</p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs">
                         <div v-for="row in typeRows" :key="row.type" class="flex items-center gap-2 bg-gray-900/60 rounded-xl p-2 border border-white/5">
@@ -215,6 +240,8 @@ export default {
             iso: true,
             exporting: false,
             editing: false,
+            reconstructing: false,
+            reconstructError: null,
         }
     },
     watch: {
@@ -227,6 +254,9 @@ export default {
             return this.model.result_type === 'deck'
         },
         /** فقط مالک و فقط رکوردهای چیدمان */
+        isPending() {
+            return !!(this.model.pending || this.model.layout?.pending)
+        },
         canEdit() {
             return this.isOwner && this.model.result_type === 'layout' && this.model.can_edit !== false
         },
@@ -251,6 +281,19 @@ export default {
         },
     },
     methods: {
+        async reconstruct() {
+            if (this.reconstructing) return
+            this.reconstructing = true
+            this.reconstructError = null
+            try {
+                const { data } = await window.axios.post(`/api/base-clones/${this.model.slug}/reconstruct`, {}, { timeout: 240000 })
+                this.model = data.clone
+            } catch (err) {
+                this.reconstructError = err.response?.data?.message || 'بازسازی انجام نشد؛ کمی بعد دوباره تلاش کن.'
+            } finally {
+                this.reconstructing = false
+            }
+        },
         toggleEditing() {
             this.editing = !this.editing
             if (this.editing) this.iso = true
