@@ -202,3 +202,31 @@ it('ChatbotService::ask still returns model text via fallback when the primary 5
     Http::assertSent(fn ($request) => ($request->data()['model'] ?? null) === 'nabu-smart'
         && ($request->data()['max_tokens'] ?? null) === 950);
 });
+
+it('skips a model that recently failed so the next request goes straight to the fallback', function () {
+    config()->set('services.nabu.base_url', 'https://gate.test');
+    config()->set('services.nabu.api_key', 'token');
+    config()->set('services.nabu.model', 'broken-model');
+    config()->set('services.nabu.fallback_models', 'nabu-smart');
+
+    Http::fake(function ($request) {
+        $model = $request->data()['model'] ?? null;
+        if ($model === 'broken-model') {
+            return Http::response(['error' => ['message' => 'all targets failed']], 502);
+        }
+
+        return Http::response(['choices' => [['message' => ['content' => 'ok']]]], 200);
+    });
+
+    $client = app(\App\Services\AI\NabuGateClient::class);
+
+    expect($client->chat([['role' => 'user', 'content' => 'hi']])['model'])->toBe('nabu-smart');
+    $first = count(Http::recorded());
+
+    expect($client->chat([['role' => 'user', 'content' => 'hi again']])['model'])->toBe('nabu-smart');
+    $second = count(Http::recorded()) - $first;
+
+    // درخواست دوم فقط یک تماس دارد: مدل خراب رد شده است
+    expect($second)->toBe(1)
+        ->and($first)->toBeGreaterThan(1);
+});

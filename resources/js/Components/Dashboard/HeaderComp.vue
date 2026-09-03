@@ -3,6 +3,17 @@
         <div class="bg-gray-900/80 sm:bg-gray-800/95 backdrop-blur-xl border border-gray-700/80 rounded-2xl p-2.5 sm:p-5 shadow-xl sm:shadow-2xl flex items-center justify-between gap-2 sm:gap-3">
             <!-- هویت -->
             <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <!-- همبرگر: سمت شروع (راست در RTL) -->
+                <button
+                        type="button"
+                        @click="drawerOpen = true"
+                        class="w-11 h-11 rounded-xl bg-gray-800/80 hover:bg-gray-700 border border-gray-700 text-gray-200 hover:text-white text-xl flex items-center justify-center transition active:scale-95"
+                        aria-label="بازکردن منو"
+                        aria-haspopup="dialog"
+                        :aria-expanded="drawerOpen ? 'true' : 'false'"
+                    >
+                        ☰
+                    </button>
                 <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-lg sm:text-xl shadow-lg shadow-amber-500/20 font-black text-gray-950 shrink-0">
                     ⚡
                 </div>
@@ -47,18 +58,6 @@
                 >
                     <span>🚪</span>
                     <span>خروج</span>
-                </button>
-
-                <!-- همبرگر: بازکردن دراور -->
-                <button
-                    type="button"
-                    @click="drawerOpen = true"
-                    class="w-11 h-11 rounded-xl bg-gray-800/80 hover:bg-gray-700 border border-gray-700 text-gray-200 hover:text-white text-xl flex items-center justify-center transition active:scale-95"
-                    aria-label="بازکردن منو"
-                    aria-haspopup="dialog"
-                    :aria-expanded="drawerOpen ? 'true' : 'false'"
-                >
-                    ☰
                 </button>
             </div>
         </div>

@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -98,7 +99,12 @@ class NabuGateClient
         $deadline = microtime(true) + $timeout;
         $cleanMessages = $this->sanitizeMessages($messages);
 
-        foreach ($models as $model) {
+        // مدارشکن: مدلی که به‌تازگی خراب بوده (مثلاً 402/502 از upstream) تا ۱۰ دقیقه رد می‌شود
+        // تا هر درخواست چت ۲۰ ثانیه صرف تلاش‌های بی‌فایده نکند. اگر همه خراب باشند، همه امتحان می‌شوند.
+        $healthy = array_values(array_filter($models, fn ($m) => ! $this->isTripped($m)));
+        $candidates = $healthy !== [] ? $healthy : $models;
+
+        foreach ($candidates as $model) {
             $payload = array_merge($options['extra'] ?? [], [
                 'model' => $model,
                 'messages' => $cleanMessages,
@@ -112,7 +118,12 @@ class NabuGateClient
 
             $result = $this->tryModel($model, $payload, $deadline);
             if ($result !== null) {
+                $this->resetTrip($model);
+
                 return $result;
+            }
+            if (in_array($this->lastError['reason'] ?? '', ['server', 'model', 'empty'], true)) {
+                $this->trip($model);
             }
             if ($this->fatal) {
                 break;
@@ -120,6 +131,41 @@ class NabuGateClient
         }
 
         return null;
+    }
+
+    /** مدت رد شدن مدل خراب (ثانیه). */
+    public const TRIP_SECONDS = 600;
+
+    protected function tripKey(string $model): string
+    {
+        return 'nabugate:tripped:'.md5($model);
+    }
+
+    protected function isTripped(string $model): bool
+    {
+        try {
+            return (bool) Cache::get($this->tripKey($model), false);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    protected function trip(string $model): void
+    {
+        try {
+            Cache::put($this->tripKey($model), true, self::TRIP_SECONDS);
+            Log::warning("NabuGateClient: model [{$model}] tripped for ".self::TRIP_SECONDS.'s after '.($this->lastError['reason'] ?? 'error'));
+        } catch (\Throwable) {
+            // بدون cache هم کار می‌کند؛ فقط مدارشکن غیرفعال است
+        }
+    }
+
+    protected function resetTrip(string $model): void
+    {
+        try {
+            Cache::forget($this->tripKey($model));
+        } catch (\Throwable) {
+        }
     }
 
     /**
