@@ -1,11 +1,17 @@
 <template>
-    <div class="min-h-screen bg-gray-900 flex flex-col items-center p-4 pb-20 relative">
+    <div class="min-h-screen bg-gray-900 flex flex-col items-center p-4 pb-[calc(7rem+env(safe-area-inset-bottom))] relative">
 
         <!-- اعلان‌های موفق/خطا -->
         <AlertMessages :successMessage="successMessage" :errorMessage="errorMessage" />
 
-        <!-- هدر بالای صفحه -->
-        <HeaderComp :user="user" />
+        <!-- هدر بالای صفحه (چسبان در موبایل + دکمهٔ همبرگری برای دراور کناری) -->
+        <HeaderComp
+            :user="user"
+            :activeTab="activeTab"
+            :activeSupercellGame="activeSupercellGame"
+            @update:activeTab="selectTab"
+            @select-game="val => activeSupercellGame = val"
+        />
 
         <!-- محتوای اصلی -->
         <div class="w-full max-w-5xl flex-1 mt-4">
@@ -221,11 +227,11 @@
             </template>
         </div>
 
-        <!-- منوی پایین صفحه (فقط در حالت کلش اف کلنز) -->
+        <!-- منوی پایین صفحه: ۵ آیتم ثابت + شیت «بیشتر» (فقط در حالت کلش اف کلنز) -->
         <BottomNav
             v-if="user.game_profile && activeSupercellGame === 'coc'"
             :activeTab="activeTab"
-            @update:activeTab="val => activeTab = val"
+            @update:activeTab="selectTab"
         />
         <!-- لودینگ اورلی + شمارش معکوس (در صورت نیاز) -->
         <LoadingOverlay
@@ -434,6 +440,11 @@ export default {
         }
     },
     methods: {
+        // انتخاب تب از نوار پایین / شیت بیشتر / دراور کناری
+        selectTab(tabId) {
+            this.activeSupercellGame = 'coc'
+            this.activeTab = tabId
+        },
         changePage(pageKey, newPage) {
             this.$inertia.get('/dashboard', {
                     [pageKey]: newPage,

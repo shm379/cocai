@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
+use App\Services\AI\NabuGateClient;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -13,15 +13,19 @@ use Illuminate\Support\Facades\Log;
  */
 class ChatbotService
 {
-    protected $baseUrl;
-    protected $apiKey;
-    protected $model;
+    protected NabuGateClient $gate;
 
-    public function __construct(protected ProgressionService $progression)
+    public function __construct(protected ProgressionService $progression, ?NabuGateClient $gate = null)
     {
-        $this->baseUrl = config('services.nabu.base_url');
-        $this->apiKey = config('services.nabu.api_key');
-        $this->model = config('services.nabu.model', 'nabu-smart');
+        $this->gate = $gate ?? app(NabuGateClient::class);
+    }
+
+    /**
+     * کلاینت گیت‌وی (برای خواندن آخرین خطا در کنترلرها).
+     */
+    public function gateway(): NabuGateClient
+    {
+        return $this->gate;
     }
 
     /**
@@ -104,48 +108,23 @@ PROMPT;
     }
 
     /**
-     * ارتباط با NabuGate AI Gateway
+     * ارتباط با NabuGate AI Gateway (با زنجیرهٔ fallback مدل‌ها؛ در صورت شکست رشتهٔ خالی)
      */
     protected function chat(array $messages, float $temperature = 0.4, int $maxTokens = 900): string
     {
-        if (empty($this->baseUrl) || empty($this->apiKey)) {
+        $result = $this->gate->chat($messages, [
+            'temperature' => $temperature,
+            'max_tokens' => $maxTokens,
+        ]);
+
+        if ($result === null) {
+            $err = $this->gate->lastError();
+            Log::error('ChatbotService: all NabuGate models failed', $err ?? []);
+
             return '';
         }
 
-        $cleanMessages = array_map(function ($msg) {
-            return [
-                'role' => $msg['role'] ?? 'user',
-                'content' => mb_convert_encoding((string) ($msg['content'] ?? ''), 'UTF-8', 'UTF-8'),
-            ];
-        }, $messages);
-
-        foreach ([1, 2] as $attempt) {
-            try {
-                $response = Http::timeout(15)
-                    ->connectTimeout(5)
-                    ->withToken($this->apiKey)
-                    ->acceptJson()
-                    ->post(rtrim($this->baseUrl, '/').'/v1/chat/completions', [
-                        'model' => $this->model,
-                        'messages' => $cleanMessages,
-                        'temperature' => $temperature,
-                        'max_tokens' => $maxTokens,
-                    ]);
-
-                if ($response->ok()) {
-                    return (string) data_get($response->json(), 'choices.0.message.content', '');
-                }
-
-                Log::error("NabuGate error (attempt {$attempt}) ".$response->status().': '.$response->body());
-                if ($response->clientError()) {
-                    return '';
-                }
-            } catch (\Throwable $e) {
-                Log::error("NabuGate request failed (attempt {$attempt}): ".$e->getMessage());
-            }
-        }
-
-        return '';
+        return $result['content'];
     }
 
     /**

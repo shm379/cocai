@@ -16,6 +16,41 @@
 </template>
 
 <script>
+// فهرست بازی‌های سوپرسل — به‌صورت named export تا SideDrawer هم از همین لیست استفاده کند
+// (کلاس‌های Tailwind اینجا می‌مانند تا در اسکن content پیدا شوند)
+export const SUPERCELL_GAMES = [
+    {
+        id: 'coc',
+        nameFa: 'Clash of Clans',
+        icon: '🏰',
+        activeClass: 'bg-amber-500 text-gray-950 shadow-lg shadow-amber-500/20'
+    },
+    {
+        id: 'clash_royale',
+        nameFa: 'Clash Royale',
+        icon: '👑',
+        activeClass: 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+    },
+    {
+        id: 'brawl_stars',
+        nameFa: 'Brawl Stars',
+        icon: '🌵',
+        activeClass: 'bg-yellow-500 text-gray-950 shadow-lg shadow-yellow-500/20'
+    },
+    {
+        id: 'squad_busters',
+        nameFa: 'Squad Busters',
+        icon: '⚡',
+        activeClass: 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
+    },
+    {
+        id: 'boom_beach',
+        nameFa: 'Boom Beach',
+        icon: '🏝️',
+        activeClass: 'bg-teal-600 text-white shadow-lg shadow-teal-600/20'
+    }
+]
+
 export default {
     name: 'GameSwitcherBar',
     props: {
@@ -26,38 +61,7 @@ export default {
     },
     data() {
         return {
-            games: [
-                {
-                    id: 'coc',
-                    nameFa: 'Clash of Clans',
-                    icon: '🏰',
-                    activeClass: 'bg-amber-500 text-gray-950 shadow-lg shadow-amber-500/20'
-                },
-                {
-                    id: 'clash_royale',
-                    nameFa: 'Clash Royale',
-                    icon: '👑',
-                    activeClass: 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                },
-                {
-                    id: 'brawl_stars',
-                    nameFa: 'Brawl Stars',
-                    icon: '🌵',
-                    activeClass: 'bg-yellow-500 text-gray-950 shadow-lg shadow-yellow-500/20'
-                },
-                {
-                    id: 'squad_busters',
-                    nameFa: 'Squad Busters',
-                    icon: '⚡',
-                    activeClass: 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
-                },
-                {
-                    id: 'boom_beach',
-                    nameFa: 'Boom Beach',
-                    icon: '🏝️',
-                    activeClass: 'bg-teal-600 text-white shadow-lg shadow-teal-600/20'
-                }
-            ]
+            games: SUPERCELL_GAMES
         }
     }
 }

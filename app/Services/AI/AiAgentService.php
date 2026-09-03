@@ -23,10 +23,14 @@ use Illuminate\Support\Facades\Log;
  */
 class AiAgentService
 {
+    protected NabuGateClient $gate;
+
     public function __construct(
         protected ChatbotService $chatbot,
         protected ClashOfClansService $clashService,
+        ?NabuGateClient $gate = null,
     ) {
+        $this->gate = $gate ?? app(NabuGateClient::class);
     }
 
     /**
@@ -284,41 +288,25 @@ class AiAgentService
     }
 
     /**
-     * فراخوانی مستقیم مدل زبانی.
+     * فراخوانی مستقیم مدل زبانی (با زنجیرهٔ fallback مدل‌ها).
      */
     protected function callModel(string $system, string $prompt, float $temperature = 0.4, int $maxTokens = 400): string
     {
-        $baseUrl = rtrim(config('services.nabu.base_url', ''), '/');
-        $apiKey = config('services.nabu.api_key', '');
-        $model = config('services.nabu.model', 'nabu-smart');
+        $result = $this->gate->chat([
+            ['role' => 'system', 'content' => $system],
+            ['role' => 'user', 'content' => $prompt],
+        ], [
+            'temperature' => $temperature,
+            'max_tokens' => $maxTokens,
+        ]);
 
-        if (empty($baseUrl) || empty($apiKey)) {
+        if ($result === null) {
+            Log::error('AiAgent callModel failed: all NabuGate models failed', $this->gate->lastError() ?? []);
+
             return '';
         }
 
-        try {
-            $response = \Illuminate\Support\Facades\Http::timeout(15)
-                ->connectTimeout(5)
-                ->withToken($apiKey)
-                ->acceptJson()
-                ->post($baseUrl.'/v1/chat/completions', [
-                    'model' => $model,
-                    'messages' => [
-                        ['role' => 'system', 'content' => $system],
-                        ['role' => 'user', 'content' => $prompt],
-                    ],
-                    'temperature' => $temperature,
-                    'max_tokens' => $maxTokens,
-                ]);
-
-            if ($response->ok()) {
-                return (string) data_get($response->json(), 'choices.0.message.content', '');
-            }
-        } catch (\Throwable $e) {
-            Log::error('AiAgent callModel failed: '.$e->getMessage());
-        }
-
-        return '';
+        return $result['content'];
     }
 
     /**
